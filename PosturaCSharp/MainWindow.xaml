@@ -1,0 +1,41 @@
+﻿<Window x:Name="MainForm" x:Class="PosturaCSharp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PosturaCSharp"
+        mc:Ignorable="d"
+        Title="Postura" Height="500" Width="700" Closing="MainForm_FormClosing">
+    <Grid x:Name="Organizer" Background="White">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="8*"/>
+            <RowDefinition Height="4*"/>
+            <RowDefinition Height="8*"/>
+            <RowDefinition Height="1*"/>
+            <RowDefinition Height="2*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="8*"/>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="8*"/>
+        </Grid.ColumnDefinitions>
+
+        <Image x:Name="videoBox" Grid.Row="0" Loaded="videoBox_Loaded" RenderTransformOrigin="0.5,0.5" Grid.RowSpan="3" Grid.ColumnSpan="3">
+            <Image.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform ScaleX="-1"/>
+                </TransformGroup>
+            </Image.RenderTransform>
+        </Image>
+        <Label x:Name="lblLag" Content="lblLag" Foreground="Chartreuse" Grid.Row="0" Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="14"/>
+
+        <Viewbox x:Name="vbCountdownContainer" Grid.Row="1" Grid.Column="1">
+            <TextBlock x:Name="tbCountdown" TextWrapping="Wrap" Foreground="Red"/>
+        </Viewbox>
+        
+        <ComboBox x:Name="cbDeviceList" Grid.Row="3" SelectionChanged="cbDeviceList_SelectionChanged" Grid.ColumnSpan="3"/>
+
+        <Button x:Name="btnCalibrate" Grid.Row="4" Content="Calibrate!" FontFamily="Verdana" FontSize="18" Grid.ColumnSpan="3" Click="btnCalibrate_Click"/>
+    </Grid>
+
+</Window>
