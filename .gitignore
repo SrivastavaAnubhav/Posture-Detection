@@ -1,0 +1,5 @@
+PosturaCSharp/bin/
+PosturaCSharp/obj/
+*.csproj
+*.user
+.vs/
