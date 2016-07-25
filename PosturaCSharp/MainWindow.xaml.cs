@@ -37,14 +37,15 @@ namespace PosturaCSharp
     public partial class MainWindow : Window
     {
         //TODO: Ask whether calibration picture is OK
-        //TODO: Make FaceAPI calls
         //TODO: Show differences
         //TODO: Preferences section: set tolerances, set camera
 
-        private FilterInfoCollection videoDevices;
+        private double imageHeight, imageWidth;
+
+        private FilterInfoCollection videoDevicesList;
         private VideoCaptureDevice camera;
         private Stopwatch sw = new Stopwatch();
-        private readonly IFaceServiceClient faceServiceClient = new FaceServiceClient("070a29b4f1884d358e77c57d7a00d2a5");
+        private readonly IFaceServiceClient faceServiceClient = new FaceServiceClient("64204927d74943918f0af8c8151e48c7");
 
         public MainWindow()
         {
@@ -53,15 +54,15 @@ namespace PosturaCSharp
 
         private void videoBox_Loaded(object sender, RoutedEventArgs e)
         {
-            videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-            foreach (FilterInfo device in videoDevices)
+            videoDevicesList = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+            foreach (FilterInfo device in videoDevicesList)
             {
                 cbDeviceList.Items.Add(device.Name);
             }
 
             camera = new VideoCaptureDevice();
 
-            if (videoDevices.Count != 0)
+            if (videoDevicesList.Count != 0)
             {
                 cbDeviceList.SelectedIndex = 0;
             }
@@ -70,21 +71,14 @@ namespace PosturaCSharp
         private void cbDeviceList_SelectionChanged(object sender, EventArgs e)
         {
             if (camera.IsRunning) camera.Stop();
-            camera = new VideoCaptureDevice(videoDevices[cbDeviceList.SelectedIndex].MonikerString);
+            camera = new VideoCaptureDevice(videoDevicesList[cbDeviceList.SelectedIndex].MonikerString);
             camera.NewFrame += new NewFrameEventHandler(camera_NewFrame);
             camera.Start();
         }
 
         private void camera_NewFrame(object sender, NewFrameEventArgs e)
         {
-            sw.Start();
-            BitmapImage img = BitmapToImageSource(e.Frame);
-            videoBox.Dispatcher.Invoke(delegate { videoBox.Source = img; });
-            sw.Stop();
-
-            lblLag.Dispatcher.Invoke(delegate { lblLag.Content = sw.ElapsedMilliseconds.ToString() + "ms"; });
-
-            sw.Reset();
+            videoBox.Dispatcher.Invoke(delegate { videoBox.Source = BitmapToImageSource(e.Frame); });
         }
 
         private BitmapImage BitmapToImageSource(Bitmap bitmap)
@@ -123,8 +117,33 @@ namespace PosturaCSharp
             await Countdown();
             await VideoBoxFlash();
             camera.SignalToStop();
-            await GetJSON();
-            SavePicture();
+            Face[] jsonFaces = await GetJSON();
+
+            if (jsonFaces.Length > 0) {
+                BoxFace(jsonFaces[0]);
+            }
+        }
+
+        private void BoxFace(Face face)
+        {
+            System.Windows.Shapes.Rectangle rct = new System.Windows.Shapes.Rectangle();
+            rct.Fill = System.Windows.Media.Brushes.Transparent;
+            rct.Stroke = System.Windows.Media.Brushes.Red;
+            rct.StrokeThickness = 3;
+
+            if (Grid.)
+
+            rct.Height = videoBox.ActualHeight * face.FaceRectangle.Height / imageHeight;
+            rct.Width = videoBox.ActualWidth * face.FaceRectangle.Width / imageWidth;
+
+            Canvas.SetLeft(rct, videoBox.ActualWidth * face.FaceRectangle.Left / imageWidth);
+            Canvas.SetTop(rct, videoBox.ActualHeight * face.FaceRectangle.Top / imageHeight);
+
+            
+
+            rctHolder.Children.Add(rct);
+
+            lblLag.Dispatcher.Invoke(delegate { lblLag.Content = sw.ElapsedMilliseconds.ToString() + "ms"; });
         }
 
         private async Task Countdown()
@@ -193,6 +212,8 @@ namespace PosturaCSharp
                 var transform = new ScaleTransform(-1, 1);
                 flippedBitmap.Transform = transform;
                 flippedBitmap.EndInit();
+                imageHeight = flippedBitmap.Height;
+                imageWidth = flippedBitmap.Width;
                 encoder.Frames.Add(BitmapFrame.Create(flippedBitmap));
                 encoder.Save(imageFileStream);
                 imageFileStream.Position = 0;

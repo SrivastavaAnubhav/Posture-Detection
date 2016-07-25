@@ -27,6 +27,9 @@
                 </TransformGroup>
             </Image.RenderTransform>
         </Image>
+
+        <Canvas x:Name="rctHolder" Grid.RowSpan="3" Grid.ColumnSpan="3"/>
+
         <Label x:Name="lblLag" Content="lblLag" Foreground="Chartreuse" Grid.Row="0" Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="14"/>
 
         <Viewbox x:Name="vbCountdownContainer" Grid.Row="1" Grid.Column="1">
