@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PosturaCSharp"
         mc:Ignorable="d"
-        Title="Postura" Height="500" Width="700" Closing="MainForm_FormClosing">
+        Title="Postura" Height="500" Width="700" Closing="MainForm_FormClosing" SizeToContent="WidthAndHeight">
     <Grid x:Name="Organizer" Background="White">
         <Grid.RowDefinitions>
             <RowDefinition Height="8*"/>

@@ -131,8 +131,6 @@ namespace PosturaCSharp
             rct.Stroke = System.Windows.Media.Brushes.Red;
             rct.StrokeThickness = 3;
 
-            if (Grid.)
-
             rct.Height = videoBox.ActualHeight * face.FaceRectangle.Height / imageHeight;
             rct.Width = videoBox.ActualWidth * face.FaceRectangle.Width / imageWidth;
 
