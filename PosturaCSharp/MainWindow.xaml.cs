@@ -41,7 +41,6 @@ namespace PosturaCSharp
         //TODO: Preferences section: set tolerances, set camera
 
         private double imageHeight, imageWidth;
-
         private FilterInfoCollection videoDevicesList;
         private VideoCaptureDevice camera;
         private Stopwatch sw = new Stopwatch();
@@ -70,7 +69,7 @@ namespace PosturaCSharp
 
         private void cbDeviceList_SelectionChanged(object sender, EventArgs e)
         {
-            if (camera.IsRunning) camera.Stop();
+            if (camera.IsRunning) camera.SignalToStop();
             camera = new VideoCaptureDevice(videoDevicesList[cbDeviceList.SelectedIndex].MonikerString);
             camera.NewFrame += new NewFrameEventHandler(camera_NewFrame);
             camera.Start();
@@ -78,7 +77,16 @@ namespace PosturaCSharp
 
         private void camera_NewFrame(object sender, NewFrameEventArgs e)
         {
+            // The reflection of the image is done using scale transform at the videoBox Image control
+            // While this means reflection must be done twice (once here, once when checking faces), it saves
+            // time, because reflection of the actual image is costly
+            sw.Start();
             videoBox.Dispatcher.Invoke(delegate { videoBox.Source = BitmapToImageSource(e.Frame); });
+
+            sw.Stop();
+            lblLag.Dispatcher.Invoke(delegate { lblLag.Content = sw.ElapsedMilliseconds; });
+            sw.Reset();
+
         }
 
         private BitmapImage BitmapToImageSource(Bitmap bitmap)
@@ -109,19 +117,23 @@ namespace PosturaCSharp
 
         private async void btnCalibrate_Click(object sender, RoutedEventArgs e)
         {
+            btnCalibrate.IsEnabled = false;
+
             if (camera.IsRunning == false)
             {
                 camera.Start();
             }
 
             await Countdown();
-            await VideoBoxFlash();
             camera.SignalToStop();
+            await VideoBoxFlash();
             Face[] jsonFaces = await GetJSON();
 
             if (jsonFaces.Length > 0) {
                 BoxFace(jsonFaces[0]);
             }
+
+            btnCalibrate.IsEnabled = true;
         }
 
         private void BoxFace(Face face)
@@ -134,14 +146,32 @@ namespace PosturaCSharp
             rct.Height = videoBox.ActualHeight * face.FaceRectangle.Height / imageHeight;
             rct.Width = videoBox.ActualWidth * face.FaceRectangle.Width / imageWidth;
 
-            Canvas.SetLeft(rct, videoBox.ActualWidth * face.FaceRectangle.Left / imageWidth);
-            Canvas.SetTop(rct, videoBox.ActualHeight * face.FaceRectangle.Top / imageHeight);
+            double ratio = videoBox.Source.Width / videoBox.Source.Height;
+            double leftPercent = face.FaceRectangle.Left / imageWidth;
+            double topPercent = face.FaceRectangle.Top / imageHeight;
 
+            double bigWidth = 0;
+            double bigHeight = 0;
+
+            for (int i = Grid.GetColumn(videoBox); i < Grid.GetColumn(videoBox) + Grid.GetColumnSpan(videoBox); i++)
+            {
+                bigWidth += Organizer.ColumnDefinitions[i].ActualWidth;
+            }
+
+            for (int i = Grid.GetRow(videoBox); i < Grid.GetRow(videoBox) + Grid.GetRowSpan(videoBox); i++) {
+                bigHeight += Organizer.RowDefinitions[i].ActualHeight;
+            }
+
+            // Dividing by 2 because the space is on both sides
+            double trimWidth = (bigWidth - videoBox.ActualWidth) / 2;
+            double trimHeight = (bigHeight- videoBox.ActualHeight) / 2;
             
+            // Only one of these will actually be distinct
+            // May decide to put an if statement to reflect this later
+            Canvas.SetLeft(rct, videoBox.ActualWidth * leftPercent + trimWidth);
+            Canvas.SetTop(rct, videoBox.ActualHeight * topPercent + trimHeight);
 
             rctHolder.Children.Add(rct);
-
-            lblLag.Dispatcher.Invoke(delegate { lblLag.Content = sw.ElapsedMilliseconds.ToString() + "ms"; });
         }
 
         private async Task Countdown()
@@ -175,6 +205,35 @@ namespace PosturaCSharp
             }
         }
 
+        private void btnSettings_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private async Task<Face[]> GetJSON()
+        {
+            using (MemoryStream imageFileStream = new MemoryStream())
+            {
+                var encoder = new PngBitmapEncoder();
+                var flippedBitmap = new TransformedBitmap();
+                flippedBitmap.BeginInit();
+
+                videoBox.Dispatcher.Invoke(delegate { flippedBitmap.Source = (BitmapSource)videoBox.Source; });
+
+                flippedBitmap.Transform = new ScaleTransform(-1, 1);
+                flippedBitmap.EndInit();
+                imageHeight = flippedBitmap.Height;
+                imageWidth = flippedBitmap.Width;
+                encoder.Frames.Add(BitmapFrame.Create(flippedBitmap));
+                encoder.Save(imageFileStream);
+                imageFileStream.Position = 0;
+
+                FaceAttributeType[] attributes = new FaceAttributeType[] {FaceAttributeType.HeadPose};
+                
+                return await faceServiceClient.DetectAsync(imageFileStream, true, false, attributes);
+            }
+        }
+
         private void SavePicture()
         {
             videoBox.Dispatcher.Invoke(delegate
@@ -197,29 +256,5 @@ namespace PosturaCSharp
             });
         }
 
-        private async Task<Face[]> GetJSON()
-        {
-            using (MemoryStream imageFileStream = new MemoryStream())
-            {
-                var encoder = new PngBitmapEncoder();
-                var flippedBitmap = new TransformedBitmap();
-                flippedBitmap.BeginInit();
-
-                videoBox.Dispatcher.Invoke(delegate { flippedBitmap.Source = (BitmapSource)videoBox.Source; });
-
-                var transform = new ScaleTransform(-1, 1);
-                flippedBitmap.Transform = transform;
-                flippedBitmap.EndInit();
-                imageHeight = flippedBitmap.Height;
-                imageWidth = flippedBitmap.Width;
-                encoder.Frames.Add(BitmapFrame.Create(flippedBitmap));
-                encoder.Save(imageFileStream);
-                imageFileStream.Position = 0;
-
-                FaceAttributeType[] attributes = new FaceAttributeType[] {FaceAttributeType.HeadPose};
-                
-                return await faceServiceClient.DetectAsync(imageFileStream, true, false, attributes);
-            }
-        }
     }
 }

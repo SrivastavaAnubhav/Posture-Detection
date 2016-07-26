@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PosturaCSharp"
         mc:Ignorable="d"
-        Title="Postura" Height="500" Width="700" Closing="MainForm_FormClosing" SizeToContent="WidthAndHeight">
-    <Grid x:Name="Organizer" Background="White">
+        Title="Postura" Height="500" Width="700" Closing="MainForm_FormClosing" Background="Blue">
+    <Grid x:Name="Organizer" Background="Black">
         <Grid.RowDefinitions>
             <RowDefinition Height="8*"/>
             <RowDefinition Height="4*"/>
@@ -38,7 +38,14 @@
         
         <ComboBox x:Name="cbDeviceList" Grid.Row="3" SelectionChanged="cbDeviceList_SelectionChanged" Grid.ColumnSpan="3"/>
 
-        <Button x:Name="btnCalibrate" Grid.Row="4" Content="Calibrate!" FontFamily="Verdana" FontSize="18" Grid.ColumnSpan="3" Click="btnCalibrate_Click"/>
+        <Button x:Name="btnCalibrate" Grid.Row="4" Content="Calibrate!" FontFamily="Verdana" FontSize="18" Grid.ColumnSpan="1" Click="btnCalibrate_Click"/>
+        <Button x:Name="btnSettings" Grid.Row="4" Grid.Column="1" FontFamily="Verdana" FontSize="18" Grid.ColumnSpan="1" Click="btnSettings_Click"/>
+        <Button x:Name="btnBlank" Grid.Row="4" Grid.Column="2" Content="" FontFamily="Verdana" FontSize="18" Grid.ColumnSpan="1" IsEnabled="False"/>
     </Grid>
-
+    
+ <!--
+   <UserControl.Resources>
+        <Image x:Key="settings_gear" Source=""/>
+    </UserControl.Resources>
+ -->
 </Window>
