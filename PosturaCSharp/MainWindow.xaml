@@ -6,21 +6,23 @@
         xmlns:local="clr-namespace:PosturaCSharp"
         mc:Ignorable="d"
         Title="Postura" Height="500" Width="700" Closing="MainForm_FormClosing" Background="Blue">
-    <Grid x:Name="Organizer" Background="Black">
+
+    <Grid x:Name="MainGrid" Background="Black">
         <Grid.RowDefinitions>
             <RowDefinition Height="8*"/>
             <RowDefinition Height="4*"/>
             <RowDefinition Height="8*"/>
             <RowDefinition Height="1*"/>
-            <RowDefinition Height="2*"/>
+            <RowDefinition Height="2*">
+            </RowDefinition>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="8*"/>
-            <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="8*"/>
-        </Grid.ColumnDefinitions>
 
-        <Image x:Name="videoBox" Grid.Row="0" Loaded="videoBox_Loaded" RenderTransformOrigin="0.5,0.5" Grid.RowSpan="3" Grid.ColumnSpan="3">
+        <Viewbox x:Name="vbCountdownContainer" Grid.Row="1">
+            <!--Viewbox maxes font size-->
+            <TextBlock x:Name="tbCountdown" TextWrapping="Wrap" Foreground="Red" Text=""/>
+        </Viewbox>
+
+        <Image x:Name="videoBox" Grid.Row="0" Grid.RowSpan="3" Loaded="videoBox_Loaded" RenderTransformOrigin="0.5,0.5" Panel.ZIndex="-1">
             <Image.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform ScaleX="-1"/>
@@ -28,24 +30,26 @@
             </Image.RenderTransform>
         </Image>
 
-        <Canvas x:Name="rctHolder" Grid.RowSpan="3" Grid.ColumnSpan="3"/>
+        <Canvas x:Name="rctHolder" Grid.RowSpan="3"/>
 
         <Label x:Name="lblLag" Content="lblLag" Foreground="Chartreuse" Grid.Row="0" Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="14"/>
 
-        <Viewbox x:Name="vbCountdownContainer" Grid.Row="1" Grid.Column="1">
-            <TextBlock x:Name="tbCountdown" TextWrapping="Wrap" Foreground="Red"/>
-        </Viewbox>
-        
-        <ComboBox x:Name="cbDeviceList" Grid.Row="3" SelectionChanged="cbDeviceList_SelectionChanged" Grid.ColumnSpan="3"/>
+        <ComboBox x:Name="cbDeviceList" Grid.Row="3" SelectionChanged="cbDeviceList_SelectionChanged"/>
 
-        <Button x:Name="btnCalibrate" Grid.Row="4" Content="Calibrate!" FontFamily="Verdana" FontSize="18" Grid.ColumnSpan="1" Click="btnCalibrate_Click"/>
-        <Button x:Name="btnSettings" Grid.Row="4" Grid.Column="1" FontFamily="Verdana" FontSize="18" Grid.ColumnSpan="1" Click="btnSettings_Click"/>
-        <Button x:Name="btnBlank" Grid.Row="4" Grid.Column="2" Content="" FontFamily="Verdana" FontSize="18" Grid.ColumnSpan="1" IsEnabled="False"/>
+        <Grid x:Name="BottomRowGrid" Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="7*"/>
+                <ColumnDefinition Width="7*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+            <Button x:Name="btnCalibrate" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Content="Calibrate!" FontFamily="Verdana" FontSize="18" Click="btnCalibrate_Click" Panel.ZIndex="2"/>
+            <Button x:Name="btnContinue" Grid.Row="4" Grid.Column="1" Content="Continue!" FontFamily="Verdana" FontSize="18" Panel.ZIndex="1" Click="btnContinue_Click"/>
+
+            <Button x:Name="btnSettings" Grid.Row="4" Grid.Column="2" FontFamily="Verdana" FontSize="18" Click="btnSettings_Click">
+                <Image Source="C:\Users\Anubhav\Documents\Miscellaneous\PosturaCSharp\PosturaCSharp\Resources\settings_gear.png" Margin="2,2,2,2"/>
+            </Button>
+            
+        </Grid> 
     </Grid>
-    
- <!--
-   <UserControl.Resources>
-        <Image x:Key="settings_gear" Source=""/>
-    </UserControl.Resources>
- -->
 </Window>

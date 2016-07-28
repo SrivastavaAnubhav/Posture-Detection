@@ -1,12 +1,13 @@
-﻿<Window x:Name="SettingsForm" x:Class="PosturaCSharp.Window1"
+﻿<Window x:Name="SettingsForm1" x:Class="PosturaCSharp.SettingsForm"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PosturaCSharp"
         mc:Ignorable="d"
-        Title="Settings" Height="300" Width="300" ResizeMode="NoResize" Background="#FFDDDDDD">
+        Title="Settings" Height="300" Width="300">
     <Grid>
-        
+        <CheckBox x:Name="checkBox" Content="Flip image horizontally" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" Checked="checkBox_Checked" Unchecked="checkBox_Unchecked"/>
+
     </Grid>
 </Window>

@@ -34,21 +34,43 @@ namespace PosturaCSharp
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
+
     public partial class MainWindow : Window
     {
-        //TODO: Ask whether calibration picture is OK
-        //TODO: Show differences
-        //TODO: Preferences section: set tolerances, set camera
+        // TODO: Ask whether calibration picture is OK
+        // TODO: Show differences
+        // TODO: Preferences section: set tolerances, set camera
+        // TODO: Make settings_gear.png relative
+
+        private System.Windows.Shapes.Rectangle rct = new System.Windows.Shapes.Rectangle()
+        {
+            Fill = System.Windows.Media.Brushes.Transparent,
+            Stroke = System.Windows.Media.Brushes.Red,
+            StrokeThickness = 3,
+            Visibility = Visibility.Hidden
+        };
 
         private double imageHeight, imageWidth;
         private FilterInfoCollection videoDevicesList;
         private VideoCaptureDevice camera;
         private Stopwatch sw = new Stopwatch();
         private readonly IFaceServiceClient faceServiceClient = new FaceServiceClient("64204927d74943918f0af8c8151e48c7");
+        private bool flip = true;
+		private Face goodFace;
 
         public MainWindow()
         {
             InitializeComponent();
+            rctHolder.Children.Add(rct);
+        }
+
+        private void btnSettings_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsForm settingsForm = new SettingsForm(flip);
+            settingsForm.Owner = this;
+            settingsForm.ShowDialog();
+            flip = settingsForm.wantFlip;
+            videoBox.RenderTransform = new ScaleTransform(Convert.ToInt32(!flip)*2 - 1, 1);
         }
 
         private void videoBox_Loaded(object sender, RoutedEventArgs e)
@@ -80,13 +102,7 @@ namespace PosturaCSharp
             // The reflection of the image is done using scale transform at the videoBox Image control
             // While this means reflection must be done twice (once here, once when checking faces), it saves
             // time, because reflection of the actual image is costly
-            sw.Start();
             videoBox.Dispatcher.Invoke(delegate { videoBox.Source = BitmapToImageSource(e.Frame); });
-
-            sw.Stop();
-            lblLag.Dispatcher.Invoke(delegate { lblLag.Content = sw.ElapsedMilliseconds; });
-            sw.Reset();
-
         }
 
         private BitmapImage BitmapToImageSource(Bitmap bitmap)
@@ -118,6 +134,9 @@ namespace PosturaCSharp
         private async void btnCalibrate_Click(object sender, RoutedEventArgs e)
         {
             btnCalibrate.IsEnabled = false;
+            btnContinue.IsEnabled = false;
+            btnSettings.IsEnabled = false;
+            rct.Visibility = Visibility.Hidden;
 
             if (camera.IsRunning == false)
             {
@@ -127,22 +146,35 @@ namespace PosturaCSharp
             await Countdown();
             camera.SignalToStop();
             await VideoBoxFlash();
-            Face[] jsonFaces = await GetJSON();
 
-            if (jsonFaces.Length > 0) {
-                BoxFace(jsonFaces[0]);
+            sw.Start();
+
+            Face[] faces = await GetJSON();
+
+            sw.Stop();
+            lblLag.Content = sw.ElapsedMilliseconds;
+            sw.Reset();
+
+            if (faces.Length > 0)
+            {
+				goodFace = faces[0];
+                BoxFace(goodFace);
+                Grid.SetColumnSpan(btnCalibrate, 1);
+                btnContinue.IsEnabled = true;
+                Grid.SetColumnSpan(btnContinue, 1);
+            }
+            else
+            {
+                tbCountdown.Text = "No faces found";
+                Grid.SetColumnSpan(btnCalibrate, 2);
             }
 
+            btnCalibrate.Content = "Recalibrate!";
             btnCalibrate.IsEnabled = true;
         }
 
         private void BoxFace(Face face)
         {
-            System.Windows.Shapes.Rectangle rct = new System.Windows.Shapes.Rectangle();
-            rct.Fill = System.Windows.Media.Brushes.Transparent;
-            rct.Stroke = System.Windows.Media.Brushes.Red;
-            rct.StrokeThickness = 3;
-
             rct.Height = videoBox.ActualHeight * face.FaceRectangle.Height / imageHeight;
             rct.Width = videoBox.ActualWidth * face.FaceRectangle.Width / imageWidth;
 
@@ -150,28 +182,28 @@ namespace PosturaCSharp
             double leftPercent = face.FaceRectangle.Left / imageWidth;
             double topPercent = face.FaceRectangle.Top / imageHeight;
 
-            double bigWidth = 0;
+            double bigWidth = MainForm.ActualWidth;
             double bigHeight = 0;
 
-            for (int i = Grid.GetColumn(videoBox); i < Grid.GetColumn(videoBox) + Grid.GetColumnSpan(videoBox); i++)
-            {
-                bigWidth += Organizer.ColumnDefinitions[i].ActualWidth;
-            }
+            //for (int i = Grid.GetColumn(videoBox); i < Grid.GetColumn(videoBox) + Grid.GetColumnSpan(videoBox); i++)
+            //{
+            //    bigWidth += MainGrid.ColumnDefinitions[i].ActualWidth;
+            //}
 
             for (int i = Grid.GetRow(videoBox); i < Grid.GetRow(videoBox) + Grid.GetRowSpan(videoBox); i++) {
-                bigHeight += Organizer.RowDefinitions[i].ActualHeight;
+                bigHeight += MainGrid.RowDefinitions[i].ActualHeight;
             }
 
             // Dividing by 2 because the space is on both sides
             double trimWidth = (bigWidth - videoBox.ActualWidth) / 2;
             double trimHeight = (bigHeight- videoBox.ActualHeight) / 2;
-            
+
+            rct.Visibility = Visibility.Visible;
+
             // Only one of these will actually be distinct
             // May decide to put an if statement to reflect this later
             Canvas.SetLeft(rct, videoBox.ActualWidth * leftPercent + trimWidth);
             Canvas.SetTop(rct, videoBox.ActualHeight * topPercent + trimHeight);
-
-            rctHolder.Children.Add(rct);
         }
 
         private async Task Countdown()
@@ -205,26 +237,24 @@ namespace PosturaCSharp
             }
         }
 
-        private void btnSettings_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
         private async Task<Face[]> GetJSON()
         {
             using (MemoryStream imageFileStream = new MemoryStream())
             {
                 var encoder = new PngBitmapEncoder();
-                var flippedBitmap = new TransformedBitmap();
-                flippedBitmap.BeginInit();
+                var bmp = new TransformedBitmap();
+                bmp.BeginInit();
 
-                videoBox.Dispatcher.Invoke(delegate { flippedBitmap.Source = (BitmapSource)videoBox.Source; });
+                videoBox.Dispatcher.Invoke(delegate { bmp.Source = (BitmapSource)videoBox.Source; });
 
-                flippedBitmap.Transform = new ScaleTransform(-1, 1);
-                flippedBitmap.EndInit();
-                imageHeight = flippedBitmap.Height;
-                imageWidth = flippedBitmap.Width;
-                encoder.Frames.Add(BitmapFrame.Create(flippedBitmap));
+                if (flip) bmp.Transform = new ScaleTransform(-1, 1);
+
+                bmp.EndInit();
+
+                imageHeight = bmp.Height;
+                imageWidth = bmp.Width;
+
+                encoder.Frames.Add(BitmapFrame.Create(bmp));
                 encoder.Save(imageFileStream);
                 imageFileStream.Position = 0;
 
@@ -234,7 +264,43 @@ namespace PosturaCSharp
             }
         }
 
-        private void SavePicture()
+        private async void btnContinue_Click(object sender, RoutedEventArgs e)
+        {
+			Grid.SetColumnSpan(btnCalibrate, 2);
+			camera.Start();
+			await StartChecking();
+		}
+
+		private async Task StartChecking()
+		{
+			while (true)
+			{
+				sw.Restart();
+
+				Face[] faces = await GetJSON();
+
+				if (faces.Length < 1 || BadPosture(faces[0]))
+				{
+					SystemSounds.Beep.Play();
+				}
+
+				sw.Stop();
+				lblLag.Content = sw.ElapsedMilliseconds + "ms";
+
+				if (sw.ElapsedMilliseconds < 3000)
+				{
+					TimeSpan x = TimeSpan.FromMilliseconds(3000 - sw.ElapsedMilliseconds);
+					await Task.Delay(x);
+				}
+			}
+		}
+
+		private bool BadPosture(Face faceToCheck)
+		{
+			return Math.Abs(faceToCheck.FaceRectangle.Left - goodFace.FaceRectangle.Left) > goodFace.FaceRectangle.Width;
+		}
+
+		private void SavePicture()
         {
             videoBox.Dispatcher.Invoke(delegate
             {
@@ -255,6 +321,5 @@ namespace PosturaCSharp
 
             });
         }
-
     }
 }
