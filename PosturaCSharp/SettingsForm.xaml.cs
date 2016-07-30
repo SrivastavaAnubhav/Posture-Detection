@@ -19,25 +19,31 @@ namespace PosturaCSharp
     /// </summary>
     public partial class SettingsForm : Window
     {
-        // TODO: Save settings
         public bool wantFlip { get; private set; }
+		public double hMult { get; private set; }
+		public double wMult { get; private set; }
+		public double roll { get; private set; }
+		public double yaw { get; private set; }
+		public int cwLim { get; private set; }
 
-        public SettingsForm(bool flip)
+	public SettingsForm(bool flip, double heightMult, double WidthMult, double rollLimit, double yawLimit, int consecutiveWrongLimit)
         {
             InitializeComponent();
 
-            checkBox.IsChecked = flip;
+            cbFlip.IsChecked = flip;
+			
         }
 
+		private void btnSave_Click(object sender, RoutedEventArgs e)
+		{
+			// TODO: Save settings
+			this.Close();
+		}
 
-        private void checkBox_Checked(object sender, RoutedEventArgs e)
-        {
-            wantFlip = true;
-        }
+		private void SettingsForm1_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+		{
+			wantFlip = (bool)cbFlip.IsChecked;
 
-        private void checkBox_Unchecked(object sender, RoutedEventArgs e)
-        {
-            wantFlip = false;
-        }
-    }
+		}
+	}
 }

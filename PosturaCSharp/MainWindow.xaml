@@ -13,17 +13,16 @@
             <RowDefinition Height="4*"/>
             <RowDefinition Height="8*"/>
             <RowDefinition Height="1*"/>
-            <RowDefinition Height="2*">
-            </RowDefinition>
-        </Grid.RowDefinitions>
+			<RowDefinition Height="2*"/>
+		</Grid.RowDefinitions>
 
         <Viewbox x:Name="vbCountdownContainer" Grid.Row="1">
             <!--Viewbox maxes font size-->
             <TextBlock x:Name="tbCountdown" TextWrapping="Wrap" Foreground="Red" Text=""/>
         </Viewbox>
 
-        <Image x:Name="videoBox" Grid.Row="0" Grid.RowSpan="3" Loaded="videoBox_Loaded" RenderTransformOrigin="0.5,0.5" Panel.ZIndex="-1">
-            <Image.RenderTransform>
+		<Image x:Name="videoBox" Grid.Row="0" Grid.RowSpan="3" Loaded="videoBox_Loaded" RenderTransformOrigin="0.5,0.5" Panel.ZIndex="-1">
+			<Image.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform ScaleX="-1"/>
                 </TransformGroup>
@@ -32,7 +31,8 @@
 
         <Canvas x:Name="rctHolder" Grid.RowSpan="3"/>
 
-        <Label x:Name="lblLag" Content="lblLag" Foreground="Chartreuse" Grid.Row="0" Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="14"/>
+		<Label x:Name="lblNotifier" Foreground="Red" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="14"/>
+		<Label x:Name="lblLag" Foreground="Chartreuse" HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="14"/>
 
         <ComboBox x:Name="cbDeviceList" Grid.Row="3" SelectionChanged="cbDeviceList_SelectionChanged"/>
 
@@ -50,6 +50,6 @@
                 <Image Source="C:\Users\Anubhav\Documents\Miscellaneous\PosturaCSharp\PosturaCSharp\Resources\settings_gear.png" Margin="2,2,2,2"/>
             </Button>
             
-        </Grid> 
-    </Grid>
+        </Grid>
+	</Grid>
 </Window>

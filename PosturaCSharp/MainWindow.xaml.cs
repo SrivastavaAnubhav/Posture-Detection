@@ -10,6 +10,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
@@ -37,9 +38,7 @@ namespace PosturaCSharp
 
     public partial class MainWindow : Window
     {
-        // TODO: Ask whether calibration picture is OK
-        // TODO: Show differences
-        // TODO: Preferences section: set tolerances, set camera
+        // TODO: Tilt limit
         // TODO: Make settings_gear.png relative
 
         private System.Windows.Shapes.Rectangle rct = new System.Windows.Shapes.Rectangle()
@@ -50,7 +49,8 @@ namespace PosturaCSharp
             Visibility = Visibility.Hidden
         };
 
-        private double imageHeight, imageWidth;
+		private double imageHeight, imageWidth, heightMult = 1, widthMult = 1;
+		private int consecutiveWrongLimit = 1, rollLimit = 50, yawLimit = 50;
         private FilterInfoCollection videoDevicesList;
         private VideoCaptureDevice camera;
         private Stopwatch sw = new Stopwatch();
@@ -66,11 +66,15 @@ namespace PosturaCSharp
 
         private void btnSettings_Click(object sender, RoutedEventArgs e)
         {
-            SettingsForm settingsForm = new SettingsForm(flip);
+			camera.SignalToStop();
+            SettingsForm settingsForm = new SettingsForm(flip, heightMult, widthMult, rollLimit, yawLimit, consecutiveWrongLimit);
             settingsForm.Owner = this;
             settingsForm.ShowDialog();
+
             flip = settingsForm.wantFlip;
             videoBox.RenderTransform = new ScaleTransform(Convert.ToInt32(!flip)*2 - 1, 1);
+
+			camera.Start();
         }
 
         private void videoBox_Loaded(object sender, RoutedEventArgs e)
@@ -145,21 +149,23 @@ namespace PosturaCSharp
 
             await Countdown();
             camera.SignalToStop();
-            await VideoBoxFlash();
+            VideoBoxFlash();
 
             sw.Start();
 
             Face[] faces = await GetJSON();
 
             sw.Stop();
-            lblLag.Content = sw.ElapsedMilliseconds;
+            lblLag.Content = sw.ElapsedMilliseconds + "ms";
             sw.Reset();
 
             if (faces.Length > 0)
             {
 				goodFace = faces[0];
-                BoxFace(goodFace);
-                Grid.SetColumnSpan(btnCalibrate, 1);
+                BoxFace(faces[0]);
+				lblNotifier.Content = "Closer to 0 is better\n";
+				lblNotifier.Content += string.Format("Pitch: {0}, Roll: {1}, Yaw: {2}", faces[0].FaceAttributes.HeadPose.Pitch, faces[0].FaceAttributes.HeadPose.Roll, faces[0].FaceAttributes.HeadPose.Yaw);
+				Grid.SetColumnSpan(btnCalibrate, 1);
                 btnContinue.IsEnabled = true;
                 Grid.SetColumnSpan(btnContinue, 1);
             }
@@ -171,6 +177,7 @@ namespace PosturaCSharp
 
             btnCalibrate.Content = "Recalibrate!";
             btnCalibrate.IsEnabled = true;
+			btnSettings.IsEnabled = true;
         }
 
         private void BoxFace(Face face)
@@ -217,27 +224,13 @@ namespace PosturaCSharp
             tbCountdown.Dispatcher.Invoke(delegate { tbCountdown.Text = ""; });
         }
 
-        private async Task VideoBoxFlash()
+        private void VideoBoxFlash()
         {
-            double op = 0.8;
-            while (op > 0)
-            {
-                videoBox.Dispatcher.Invoke(delegate { videoBox.Opacity = op; });
-                op -= 0.25;
-                await Task.Delay(1);
-            }
+			videoBox.BeginAnimation(System.Windows.Controls.Image.OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(500)));
+			videoBox.BeginAnimation(System.Windows.Controls.Image.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(1000)));
+		}
 
-            op = 0;
-
-            while (op < 1)
-            {
-                videoBox.Dispatcher.Invoke(delegate { videoBox.Opacity = op; });
-                op += 0.02;
-                await Task.Delay(1);
-            }
-        }
-
-        private async Task<Face[]> GetJSON()
+		private async Task<Face[]> GetJSON()
         {
             using (MemoryStream imageFileStream = new MemoryStream())
             {
@@ -260,7 +253,7 @@ namespace PosturaCSharp
 
                 FaceAttributeType[] attributes = new FaceAttributeType[] {FaceAttributeType.HeadPose};
                 
-                return await faceServiceClient.DetectAsync(imageFileStream, true, false, attributes);
+                return await faceServiceClient.DetectAsync(imageFileStream, false, false, attributes);
             }
         }
 
@@ -273,13 +266,20 @@ namespace PosturaCSharp
 
 		private async Task StartChecking()
 		{
+			int consecutiveWrong = 0;
 			while (true)
 			{
 				sw.Restart();
 
 				Face[] faces = await GetJSON();
 
-				if (faces.Length < 1 || BadPosture(faces[0]))
+				if (faces.Length < 1 || IsPostureBad(faces[0]))
+				{
+					consecutiveWrong++;
+				}
+				else consecutiveWrong = 0;
+
+				if (consecutiveWrong >= consecutiveWrongLimit)
 				{
 					SystemSounds.Beep.Play();
 				}
@@ -287,17 +287,21 @@ namespace PosturaCSharp
 				sw.Stop();
 				lblLag.Content = sw.ElapsedMilliseconds + "ms";
 
-				if (sw.ElapsedMilliseconds < 3000)
+				if (sw.ElapsedMilliseconds < 4000)
 				{
-					TimeSpan x = TimeSpan.FromMilliseconds(3000 - sw.ElapsedMilliseconds);
+					TimeSpan x = TimeSpan.FromMilliseconds(4000 - sw.ElapsedMilliseconds);
 					await Task.Delay(x);
 				}
 			}
 		}
 
-		private bool BadPosture(Face faceToCheck)
+		private bool IsPostureBad(Face faceToCheck)
 		{
-			return Math.Abs(faceToCheck.FaceRectangle.Left - goodFace.FaceRectangle.Left) > goodFace.FaceRectangle.Width;
+
+			return Math.Abs(faceToCheck.FaceRectangle.Left - goodFace.FaceRectangle.Left) > widthMult*goodFace.FaceRectangle.Width ||
+				Math.Abs(faceToCheck.FaceRectangle.Top- goodFace.FaceRectangle.Top) > heightMult*goodFace.FaceRectangle.Height ||
+				Math.Abs(faceToCheck.FaceAttributes.HeadPose.Roll - goodFace.FaceAttributes.HeadPose.Roll) > rollLimit ||
+				Math.Abs(faceToCheck.FaceAttributes.HeadPose.Yaw - goodFace.FaceAttributes.HeadPose.Yaw) > yawLimit;
 		}
 
 		private void SavePicture()

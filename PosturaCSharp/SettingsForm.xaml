@@ -5,9 +5,42 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PosturaCSharp"
         mc:Ignorable="d"
-        Title="Settings" Height="300" Width="300">
-    <Grid>
-        <CheckBox x:Name="checkBox" Content="Flip image horizontally" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" Checked="checkBox_Checked" Unchecked="checkBox_Unchecked"/>
+        Title="Settings" Width="300" SizeToContent="Height" Closing="SettingsForm1_Closing">
 
-    </Grid>
+	<StackPanel Margin="10">
+		<DockPanel Margin="5">
+			<Label Content="Flip video horizontally?"/>
+			<CheckBox x:Name="cbFlip" Content="" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0,0,0"/>
+		</DockPanel>
+
+		<DockPanel Margin="5">
+			<Label Content="Height tolerance"/>
+			<Slider x:Name="slHeight" HorizontalAlignment="Stretch" Maximum="3" TickFrequency="0.1" TickPlacement="BottomRight" IsSnapToTickEnabled="True"/>
+		</DockPanel>
+
+		<DockPanel Margin="5">
+			<Label Content="Width tolerance"/>
+			<Slider x:Name="slWidth" HorizontalAlignment="Stretch" Maximum="2" TickFrequency="0.1" TickPlacement="BottomRight" IsSnapToTickEnabled="True"/>
+		</DockPanel>
+
+		<DockPanel Margin="5">
+			<Label Content="Roll tolerance"/>
+			<Slider x:Name="slRoll" HorizontalAlignment="Stretch" Maximum="100" TickFrequency="10" TickPlacement="BottomRight" IsSnapToTickEnabled="True"/>
+		</DockPanel>
+
+		<DockPanel Margin="5">
+			<Label Content="Yaw tolerance"/>
+			<Slider x:Name="slYaw" HorizontalAlignment="Stretch" Maximum="100" TickFrequency="10" TickPlacement="BottomRight" IsSnapToTickEnabled="True"/>
+		</DockPanel>
+
+		<DockPanel Margin="5">
+			<Label Content="Consecutive bad postures"/>
+			<Slider x:Name="slCWLimit" HorizontalAlignment="Stretch" Maximum="10" TickFrequency="1" TickPlacement="BottomRight" IsSnapToTickEnabled="True"/>
+		</DockPanel>
+
+		<DockPanel Margin="5">
+			<Button x:Name="btnSave" Content="Save" Click="btnSave_Click" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
+		</DockPanel>
+	</StackPanel>
+	
 </Window>
