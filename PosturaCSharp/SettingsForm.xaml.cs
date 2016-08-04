@@ -26,12 +26,16 @@ namespace PosturaCSharp
 		public double yaw { get; private set; }
 		public int cwLim { get; private set; }
 
-	public SettingsForm(bool flip, double heightMult, double WidthMult, double rollLimit, double yawLimit, int consecutiveWrongLimit)
+	public SettingsForm(bool flip, double heightMult, double widthMult, double rollLimit, double yawLimit, int consecutiveWrongLimit)
         {
             InitializeComponent();
 
             cbFlip.IsChecked = flip;
-			
+			slHeight.Value = heightMult;
+			slWidth.Value = widthMult;
+			slRoll.Value = rollLimit;
+			slYaw.Value = yawLimit;
+			slCWLimit.Value = consecutiveWrongLimit;
         }
 
 		private void btnSave_Click(object sender, RoutedEventArgs e)
@@ -40,10 +44,14 @@ namespace PosturaCSharp
 			this.Close();
 		}
 
-		private void SettingsForm1_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+		private void btnReset_Click(object sender, RoutedEventArgs e)
 		{
-			wantFlip = (bool)cbFlip.IsChecked;
-
+			cbFlip.IsChecked = true;
+			slHeight.Value = 1;
+			slWidth.Value = 1;
+			slRoll.Value = 50;
+			slYaw.Value = 50;
+			slCWLimit.Value = 1;
 		}
 	}
 }

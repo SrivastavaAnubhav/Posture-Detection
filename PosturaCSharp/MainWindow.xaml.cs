@@ -20,9 +20,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Media;
 
-using System.Net.Http.Headers;
-using System.Net.Http;
-using System.Web;
+using System.Threading;
 
 using Microsoft.ProjectOxford.Face;
 using Microsoft.ProjectOxford.Face.Contract;
@@ -48,14 +46,13 @@ namespace PosturaCSharp
             StrokeThickness = 3,
             Visibility = Visibility.Hidden
         };
-
-		private double imageHeight, imageWidth, heightMult = 1, widthMult = 1;
-		private int consecutiveWrongLimit = 1, rollLimit = 50, yawLimit = 50;
+		private double imageHeight, imageWidth, heightMult = 1, widthMult = 1, rollLimit = 50, yawLimit = 50;
+		private int consecutiveWrongLimit = 1, consecutiveWrong = 0;
         private FilterInfoCollection videoDevicesList;
         private VideoCaptureDevice camera;
         private Stopwatch sw = new Stopwatch();
         private readonly IFaceServiceClient faceServiceClient = new FaceServiceClient("64204927d74943918f0af8c8151e48c7");
-        private bool flip = true;
+        private bool flip = true, settingsOpen;
 		private Face goodFace;
 
         public MainWindow()
@@ -69,10 +66,21 @@ namespace PosturaCSharp
 			camera.SignalToStop();
             SettingsForm settingsForm = new SettingsForm(flip, heightMult, widthMult, rollLimit, yawLimit, consecutiveWrongLimit);
             settingsForm.Owner = this;
+			settingsOpen = true;
             settingsForm.ShowDialog();
 
-            flip = settingsForm.wantFlip;
-            videoBox.RenderTransform = new ScaleTransform(Convert.ToInt32(!flip)*2 - 1, 1);
+			// Code moves on when settings dialog stops
+
+			settingsOpen = false;
+			flip = (bool)settingsForm.cbFlip.IsChecked;
+			heightMult = settingsForm.slHeight.Value;
+			widthMult = settingsForm.slWidth.Value;
+			rollLimit = settingsForm.slRoll.Value;
+			yawLimit = settingsForm.slYaw.Value;
+			consecutiveWrongLimit = (int)settingsForm.slCWLimit.Value;
+			consecutiveWrong = 0;
+
+			videoBox.RenderTransform = new ScaleTransform(Convert.ToInt32(!flip)*2 - 1, 1);
 
 			camera.Start();
         }
@@ -261,36 +269,44 @@ namespace PosturaCSharp
         {
 			Grid.SetColumnSpan(btnCalibrate, 2);
 			camera.Start();
+
 			await StartChecking();
 		}
 
 		private async Task StartChecking()
 		{
-			int consecutiveWrong = 0;
 			while (true)
 			{
-				sw.Restart();
-
-				Face[] faces = await GetJSON();
-
-				if (faces.Length < 1 || IsPostureBad(faces[0]))
+				// TODO: Find elegant way of doing this
+				if (!settingsOpen)
 				{
-					consecutiveWrong++;
+					sw.Restart();
+
+					Face[] faces = await GetJSON();
+
+					if (faces.Length < 1 || IsPostureBad(faces[0]))
+					{
+						consecutiveWrong++;
+					}
+					else consecutiveWrong = 0;
+
+					if (consecutiveWrong >= consecutiveWrongLimit)
+					{
+						SystemSounds.Beep.Play();
+					}
+
+					sw.Stop();
+					lblLag.Content = sw.ElapsedMilliseconds + "ms";
+
+					if (sw.ElapsedMilliseconds < 4000)
+					{
+						TimeSpan x = TimeSpan.FromMilliseconds(4000 - sw.ElapsedMilliseconds);
+						await Task.Delay(x);
+					}
 				}
-				else consecutiveWrong = 0;
-
-				if (consecutiveWrong >= consecutiveWrongLimit)
+				else
 				{
-					SystemSounds.Beep.Play();
-				}
-
-				sw.Stop();
-				lblLag.Content = sw.ElapsedMilliseconds + "ms";
-
-				if (sw.ElapsedMilliseconds < 4000)
-				{
-					TimeSpan x = TimeSpan.FromMilliseconds(4000 - sw.ElapsedMilliseconds);
-					await Task.Delay(x);
+					await Task.Delay(500);
 				}
 			}
 		}

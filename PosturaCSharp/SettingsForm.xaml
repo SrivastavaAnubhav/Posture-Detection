@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PosturaCSharp"
         mc:Ignorable="d"
-        Title="Settings" Width="300" SizeToContent="Height" Closing="SettingsForm1_Closing">
+        Title="Settings" Width="300" SizeToContent="Height">
 
 	<StackPanel Margin="10">
 		<DockPanel Margin="5">
@@ -15,31 +15,32 @@
 
 		<DockPanel Margin="5">
 			<Label Content="Height tolerance"/>
-			<Slider x:Name="slHeight" HorizontalAlignment="Stretch" Maximum="3" TickFrequency="0.1" TickPlacement="BottomRight" IsSnapToTickEnabled="True"/>
+			<Slider x:Name="slHeight" HorizontalAlignment="Stretch" Maximum="3" TickFrequency="0.1" TickPlacement="BottomRight" IsSnapToTickEnabled="True" AutoToolTipPlacement="BottomRight" AutoToolTipPrecision="1"/>
 		</DockPanel>
 
 		<DockPanel Margin="5">
 			<Label Content="Width tolerance"/>
-			<Slider x:Name="slWidth" HorizontalAlignment="Stretch" Maximum="2" TickFrequency="0.1" TickPlacement="BottomRight" IsSnapToTickEnabled="True"/>
+			<Slider x:Name="slWidth" HorizontalAlignment="Stretch" Maximum="2" TickFrequency="0.1" TickPlacement="BottomRight" IsSnapToTickEnabled="True" AutoToolTipPlacement="BottomRight" AutoToolTipPrecision="1"/>
 		</DockPanel>
 
 		<DockPanel Margin="5">
 			<Label Content="Roll tolerance"/>
-			<Slider x:Name="slRoll" HorizontalAlignment="Stretch" Maximum="100" TickFrequency="10" TickPlacement="BottomRight" IsSnapToTickEnabled="True"/>
+			<Slider x:Name="slRoll" HorizontalAlignment="Stretch" Maximum="100" TickFrequency="10" TickPlacement="BottomRight" IsSnapToTickEnabled="True" AutoToolTipPlacement="BottomRight"/>
 		</DockPanel>
 
 		<DockPanel Margin="5">
 			<Label Content="Yaw tolerance"/>
-			<Slider x:Name="slYaw" HorizontalAlignment="Stretch" Maximum="100" TickFrequency="10" TickPlacement="BottomRight" IsSnapToTickEnabled="True"/>
+			<Slider x:Name="slYaw" HorizontalAlignment="Stretch" Maximum="100" TickFrequency="10" TickPlacement="BottomRight" IsSnapToTickEnabled="True"  AutoToolTipPlacement="BottomRight"/>
 		</DockPanel>
 
 		<DockPanel Margin="5">
 			<Label Content="Consecutive bad postures"/>
-			<Slider x:Name="slCWLimit" HorizontalAlignment="Stretch" Maximum="10" TickFrequency="1" TickPlacement="BottomRight" IsSnapToTickEnabled="True"/>
+			<Slider x:Name="slCWLimit" HorizontalAlignment="Stretch" Minimum="1" Maximum="10" TickFrequency="1" TickPlacement="BottomRight" IsSnapToTickEnabled="True"  AutoToolTipPlacement="BottomRight"/>
 		</DockPanel>
 
 		<DockPanel Margin="5">
-			<Button x:Name="btnSave" Content="Save" Click="btnSave_Click" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
+			<Button x:Name="btnReset" Content="Reset" Click="btnReset_Click"/>
+			<Button x:Name="btnSave" Content="Save" Click="btnSave_Click"/>
 		</DockPanel>
 	</StackPanel>
 	
