@@ -5,12 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PosturaCSharp"
         mc:Ignorable="d"
-        Title="Settings" Width="300" SizeToContent="Height">
+        Title="Settings" SizeToContent="WidthAndHeight" WindowStyle="ToolWindow" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner">
 
-	<StackPanel Margin="10">
+	<StackPanel Margin="10" Width="300">
 		<DockPanel Margin="5">
 			<Label Content="Flip video horizontally?"/>
 			<CheckBox x:Name="cbFlip" Content="" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0,0,0"/>
+		</DockPanel>
+
+		<DockPanel Margin="5">
+			<Label Content="Use MS Face API for detection (kills bandwidth)?"/>
+			<CheckBox x:Name="cbFaceAPI" Content="" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0,0,0"/>
 		</DockPanel>
 
 		<DockPanel Margin="5">

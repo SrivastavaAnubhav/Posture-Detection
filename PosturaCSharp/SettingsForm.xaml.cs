@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
+
 namespace PosturaCSharp
 {
     /// <summary>
@@ -20,16 +21,18 @@ namespace PosturaCSharp
     public partial class SettingsForm : Window
     {
         public bool wantFlip { get; private set; }
+		public bool useFaceAPI { get; private set; }
 		public double hMult { get; private set; }
 		public double wMult { get; private set; }
 		public double roll { get; private set; }
 		public double yaw { get; private set; }
 		public int cwLim { get; private set; }
 
-	public SettingsForm(bool flip, double heightMult, double widthMult, double rollLimit, double yawLimit, int consecutiveWrongLimit)
+	public SettingsForm(bool flip, bool useFaceAPI, double heightMult, double widthMult, double rollLimit, double yawLimit, int consecutiveWrongLimit)
         {
             InitializeComponent();
 
+			cbFaceAPI.IsChecked = useFaceAPI;
             cbFlip.IsChecked = flip;
 			slHeight.Value = heightMult;
 			slWidth.Value = widthMult;
@@ -46,6 +49,7 @@ namespace PosturaCSharp
 
 		private void btnReset_Click(object sender, RoutedEventArgs e)
 		{
+			cbFaceAPI.IsChecked = true;
 			cbFlip.IsChecked = true;
 			slHeight.Value = 1;
 			slWidth.Value = 1;

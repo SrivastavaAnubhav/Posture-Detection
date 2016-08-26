@@ -5,10 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PosturaCSharp"
         mc:Ignorable="d"
-        Title="Postura" Height="500" Width="700" Closing="MainForm_FormClosing" Background="Blue">
-
-    <Grid x:Name="MainGrid" Background="Black">
-        <Grid.RowDefinitions>
+        Title="Postura" Height="500" Width="700" Closing="MainForm_FormClosing" Background="Blue" Deactivated="MainForm_Deactivated" Activated="MainForm_Activated" Topmost="False" SizeChanged="MainForm_SizeChanged">
+	
+	<Grid x:Name="MainGrid" Background="Green">
+		<Grid.RowDefinitions>
             <RowDefinition Height="8*"/>
             <RowDefinition Height="4*"/>
             <RowDefinition Height="8*"/>

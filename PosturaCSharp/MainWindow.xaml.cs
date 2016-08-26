@@ -20,13 +20,18 @@ using System.IO;
 using System.Diagnostics;
 using System.Media;
 
-using System.Threading;
+using System.Drawing.Imaging;
 
 using Microsoft.ProjectOxford.Face;
 using Microsoft.ProjectOxford.Face.Contract;
 
 using AForge.Video;
 using AForge.Video.DirectShow;
+
+using Emgu.CV;
+using Emgu.CV.Structure;
+using Emgu.CV.UI;
+using Emgu.Util;
 
 namespace PosturaCSharp
 {
@@ -36,43 +41,53 @@ namespace PosturaCSharp
 
     public partial class MainWindow : Window
     {
-        // TODO: Tilt limit
-        // TODO: Make settings_gear.png relative
+		// TODO: Tilt limit
+		// TODO: Figure out how to use resources properly
+		// TODO: Scale red box with form (for auto-minimize)
 
-        private System.Windows.Shapes.Rectangle rct = new System.Windows.Shapes.Rectangle()
+        private System.Windows.Shapes.Rectangle rctRed = new System.Windows.Shapes.Rectangle()
         {
             Fill = System.Windows.Media.Brushes.Transparent,
             Stroke = System.Windows.Media.Brushes.Red,
             StrokeThickness = 3,
             Visibility = Visibility.Hidden
         };
-		private double imageHeight, imageWidth, heightMult = 1, widthMult = 1, rollLimit = 50, yawLimit = 50;
+		private double imageHeight, imageWidth, heightMult = 1, widthMult = 1, rollLimit = 50, yawLimit = 50, preferredWidth = 700, preferredHeight = 500;
 		private int consecutiveWrongLimit = 1, consecutiveWrong = 0;
         private FilterInfoCollection videoDevicesList;
         private VideoCaptureDevice camera;
         private Stopwatch sw = new Stopwatch();
         private readonly IFaceServiceClient faceServiceClient = new FaceServiceClient("64204927d74943918f0af8c8151e48c7");
-        private bool flip = true, settingsOpen;
+		private bool flip = true, settingsOpen = false, waitingForCalibrateConfirm = false, useFaceAPI = true;
 		private Face goodFace;
 
         public MainWindow()
         {
             InitializeComponent();
-            rctHolder.Children.Add(rct);
+			MainForm.Height = preferredHeight;
+			MainForm.Width = preferredWidth;
+            rctHolder.Children.Add(rctRed);
         }
 
         private void btnSettings_Click(object sender, RoutedEventArgs e)
         {
 			camera.SignalToStop();
-            SettingsForm settingsForm = new SettingsForm(flip, heightMult, widthMult, rollLimit, yawLimit, consecutiveWrongLimit);
+            SettingsForm settingsForm = new SettingsForm(flip, useFaceAPI, heightMult, widthMult, rollLimit, yawLimit, consecutiveWrongLimit);
             settingsForm.Owner = this;
 			settingsOpen = true;
-            settingsForm.ShowDialog();
+			settingsForm.ShowDialog();
 
 			// Code moves on when settings dialog stops
 
 			settingsOpen = false;
+			//if (!waitingForCalibrateConfirm)
+			//{
+			//	rctRed.Visibility = Visibility.Hidden;
+			//}
+
+			// Update settings
 			flip = (bool)settingsForm.cbFlip.IsChecked;
+			useFaceAPI = (bool)settingsForm.cbFaceAPI.IsChecked;
 			heightMult = settingsForm.slHeight.Value;
 			widthMult = settingsForm.slWidth.Value;
 			rollLimit = settingsForm.slRoll.Value;
@@ -80,12 +95,14 @@ namespace PosturaCSharp
 			consecutiveWrongLimit = (int)settingsForm.slCWLimit.Value;
 			consecutiveWrong = 0;
 
+			// Converts -1 and 1 to bool
 			videoBox.RenderTransform = new ScaleTransform(Convert.ToInt32(!flip)*2 - 1, 1);
 
-			camera.Start();
-        }
+			if (!waitingForCalibrateConfirm) camera.Start();
 
-        private void videoBox_Loaded(object sender, RoutedEventArgs e)
+		}
+
+		private void videoBox_Loaded(object sender, RoutedEventArgs e)
         {
             videoDevicesList = new FilterInfoCollection(FilterCategory.VideoInputDevice);
             foreach (FilterInfo device in videoDevicesList)
@@ -131,6 +148,9 @@ namespace PosturaCSharp
                 bitmapimage.EndInit();
                 bitmapimage.Freeze();
 
+				imageWidth = bitmapimage.Width;
+				imageHeight = bitmapimage.Height;
+
                 return bitmapimage;
             }
         }
@@ -145,10 +165,11 @@ namespace PosturaCSharp
 
         private async void btnCalibrate_Click(object sender, RoutedEventArgs e)
         {
-            btnCalibrate.IsEnabled = false;
+			waitingForCalibrateConfirm = false;
+			btnCalibrate.IsEnabled = false;
             btnContinue.IsEnabled = false;
             btnSettings.IsEnabled = false;
-            rct.Visibility = Visibility.Hidden;
+            rctRed.Visibility = Visibility.Hidden;
 
             if (camera.IsRunning == false)
             {
@@ -158,12 +179,13 @@ namespace PosturaCSharp
             await Countdown();
             camera.SignalToStop();
             VideoBoxFlash();
+			waitingForCalibrateConfirm = true;
 
-            sw.Start();
+			sw.Start();
 
-            Face[] faces = await GetJSON();
+			Face[] faces = await GetFaces();
 
-            sw.Stop();
+			sw.Stop();
             lblLag.Content = sw.ElapsedMilliseconds + "ms";
             sw.Reset();
 
@@ -190,10 +212,9 @@ namespace PosturaCSharp
 
         private void BoxFace(Face face)
         {
-            rct.Height = videoBox.ActualHeight * face.FaceRectangle.Height / imageHeight;
-            rct.Width = videoBox.ActualWidth * face.FaceRectangle.Width / imageWidth;
-
-            double ratio = videoBox.Source.Width / videoBox.Source.Height;
+            rctRed.Height = videoBox.ActualHeight * face.FaceRectangle.Height / imageHeight;
+            rctRed.Width = videoBox.ActualWidth * face.FaceRectangle.Width / imageWidth;
+			double ratio = videoBox.Source.Width / videoBox.Source.Height;
             double leftPercent = face.FaceRectangle.Left / imageWidth;
             double topPercent = face.FaceRectangle.Top / imageHeight;
 
@@ -213,15 +234,49 @@ namespace PosturaCSharp
             double trimWidth = (bigWidth - videoBox.ActualWidth) / 2;
             double trimHeight = (bigHeight- videoBox.ActualHeight) / 2;
 
-            rct.Visibility = Visibility.Visible;
+            rctRed.Visibility = Visibility.Visible;
 
             // Only one of these will actually be distinct
             // May decide to put an if statement to reflect this later
-            Canvas.SetLeft(rct, videoBox.ActualWidth * leftPercent + trimWidth);
-            Canvas.SetTop(rct, videoBox.ActualHeight * topPercent + trimHeight);
+            Canvas.SetLeft(rctRed, videoBox.ActualWidth * leftPercent + trimWidth);
+            Canvas.SetTop(rctRed, videoBox.ActualHeight * topPercent + trimHeight);
         }
 
-        private async Task Countdown()
+		private void MainForm_SizeChanged(object sender, SizeChangedEventArgs e)
+		{
+			if (MainForm.IsFocused)
+			{
+				preferredHeight = MainForm.Height;
+				preferredWidth = MainForm.Width;
+			}
+		}
+
+		private void MainForm_Deactivated(object sender, EventArgs e)
+		{
+			if (!settingsOpen)
+			{
+				MainGrid.RowDefinitions[3].Height = new GridLength(0);
+				MainGrid.RowDefinitions[4].Height = new GridLength(0);
+				MainForm.ResizeMode = ResizeMode.NoResize;
+				MainForm.WindowStyle = WindowStyle.None;
+				MainForm.Height = 200;
+				MainForm.Width = MainForm.Height * imageWidth / imageHeight;
+				MainForm.Left = System.Windows.SystemParameters.PrimaryScreenWidth * 0.6;
+				MainForm.Top = 0;
+			}
+		}
+
+		private void MainForm_Activated(object sender, EventArgs e)
+		{
+			MainGrid.RowDefinitions[3].Height = new GridLength(1, GridUnitType.Star);
+			MainGrid.RowDefinitions[4].Height = new GridLength(2, GridUnitType.Star);
+			MainForm.ResizeMode = ResizeMode.CanResize;
+			MainForm.WindowStyle = WindowStyle.SingleBorderWindow;
+			MainForm.Width = preferredWidth;
+			MainForm.Height = preferredHeight;
+		}
+
+		private async Task Countdown()
         {
             for (int i = 3; i > 0; i--)
             {
@@ -238,36 +293,101 @@ namespace PosturaCSharp
 			videoBox.BeginAnimation(System.Windows.Controls.Image.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(1000)));
 		}
 
-		private async Task<Face[]> GetJSON()
+		private async Task<Face[]> GetFaces()
         {
             using (MemoryStream imageFileStream = new MemoryStream())
             {
-                var encoder = new PngBitmapEncoder();
-                var bmp = new TransformedBitmap();
-                bmp.BeginInit();
+				BitmapSource currSource = null;
 
-                videoBox.Dispatcher.Invoke(delegate { bmp.Source = (BitmapSource)videoBox.Source; });
+                videoBox.Dispatcher.Invoke(delegate { currSource = (BitmapSource)videoBox.Source; });
 
-                if (flip) bmp.Transform = new ScaleTransform(-1, 1);
+				var encoder = new PngBitmapEncoder();
+				var transbmp = new TransformedBitmap();
+				transbmp.BeginInit();
+				transbmp.Source = currSource;
 
-                bmp.EndInit();
+				if (flip) transbmp.Transform = new ScaleTransform(-1, 1);
 
-                imageHeight = bmp.Height;
-                imageWidth = bmp.Width;
+				transbmp.EndInit();
 
-                encoder.Frames.Add(BitmapFrame.Create(bmp));
-                encoder.Save(imageFileStream);
-                imageFileStream.Position = 0;
+				encoder.Frames.Add(BitmapFrame.Create(transbmp));
+				encoder.Save(imageFileStream);
 
-                FaceAttributeType[] attributes = new FaceAttributeType[] {FaceAttributeType.HeadPose};
-                
-                return await faceServiceClient.DetectAsync(imageFileStream, false, false, attributes);
-            }
+				if (useFaceAPI)
+				{
+
+					imageFileStream.Position = 0;
+
+					FaceAttributeType[] attributes = new FaceAttributeType[] { FaceAttributeType.HeadPose };
+
+					return await faceServiceClient.DetectAsync(imageFileStream, false, false, attributes);
+				}
+				else
+				{
+					Bitmap bmp = (Bitmap)Bitmap.FromStream(imageFileStream);
+
+					Task<Face[]> DetectEmguCVAsync = new Task<Face[]>(() => FacesFromRectangles(bmp));
+					DetectEmguCVAsync.Start();
+
+					return await DetectEmguCVAsync;
+				}
+			}
         }
+
+		private Face[] FacesFromRectangles(Bitmap bmp)
+		{
+			Image<Bgr, byte> cv_bmp = new Image<Bgr, byte>(bmp);
+			Image<Gray, byte> grayframe = cv_bmp.Convert<Gray, byte>();
+			CascadeClassifier cascadeClassifier = new CascadeClassifier(@"C:\Users\Anubhav\Documents\Miscellaneous\PosturaCSharp\haarcascade_frontalface_default.xml");
+
+			System.Drawing.Rectangle[] faceRects = cascadeClassifier.DetectMultiScale(grayframe, 1.1, 10, System.Drawing.Size.Empty);
+
+			Face[] faces = new Face[faceRects.Length];
+			for (int i = 0; i < faceRects.Length; i++)
+			{
+				faces[i] = new Face();
+				faces[i].FaceAttributes = new FaceAttributes();
+				faces[i].FaceAttributes.HeadPose = new HeadPose();
+				faces[i].FaceAttributes.HeadPose.Pitch = 0;
+				faces[i].FaceAttributes.HeadPose.Roll = 0;
+				faces[i].FaceAttributes.HeadPose.Yaw = 0;
+				faces[i].FaceRectangle = new FaceRectangle();
+				faces[i].FaceRectangle.Left = faceRects[i].Left;
+				faces[i].FaceRectangle.Top = faceRects[i].Top;
+				faces[i].FaceRectangle.Height = faceRects[i].Height;
+				faces[i].FaceRectangle.Width = faceRects[i].Width;
+			}
+
+			return faces;
+		}
+
+		//private Bitmap GetBitmap(BitmapSource source)
+		//{
+		//	// Code from josef.axa on stack overflow
+		//	Bitmap bmp = new Bitmap(source.PixelWidth, source.PixelHeight, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+		//	BitmapData data = bmp.LockBits(
+		//	  new System.Drawing.Rectangle(System.Drawing.Point.Empty, bmp.Size),
+		//	  ImageLockMode.WriteOnly,
+		//	  System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+		//	source.CopyPixels(
+		//	  Int32Rect.Empty,
+		//	  data.Scan0,
+		//	  data.Height * data.Stride,
+		//	  data.Stride);
+		//	bmp.UnlockBits(data);
+		//	return bmp;
+		//}
+
+
+		//private async Task<Face[]> GetJSONEmguCV()
+		//{
+		//	return null;
+		//}
 
         private async void btnContinue_Click(object sender, RoutedEventArgs e)
         {
 			Grid.SetColumnSpan(btnCalibrate, 2);
+			waitingForCalibrateConfirm = false;
 			camera.Start();
 
 			await StartChecking();
@@ -282,7 +402,9 @@ namespace PosturaCSharp
 				{
 					sw.Restart();
 
-					Face[] faces = await GetJSON();
+					Face[] faces;
+
+					faces = await GetFaces();
 
 					if (faces.Length < 1 || IsPostureBad(faces[0]))
 					{
@@ -298,14 +420,23 @@ namespace PosturaCSharp
 					sw.Stop();
 					lblLag.Content = sw.ElapsedMilliseconds + "ms";
 
-					if (sw.ElapsedMilliseconds < 4000)
-					{
-						TimeSpan x = TimeSpan.FromMilliseconds(4000 - sw.ElapsedMilliseconds);
-						await Task.Delay(x);
-					}
+					//if (useFaceAPI)
+					//{
+						// Wait 4 seconds between photos because of the limit of the API
+						if (sw.ElapsedMilliseconds < 4000)
+						{
+							TimeSpan x = TimeSpan.FromMilliseconds(4000 - sw.ElapsedMilliseconds);
+							await Task.Delay(x);
+						}
+					//}
+					//else
+					//{
+					//	await Task.Delay(1000);
+					//}
 				}
 				else
 				{
+					// Let settings form close
 					await Task.Delay(500);
 				}
 			}
