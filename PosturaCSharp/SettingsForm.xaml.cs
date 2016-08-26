@@ -28,12 +28,13 @@ namespace PosturaCSharp
 		public double yaw { get; private set; }
 		public int cwLim { get; private set; }
 
-	public SettingsForm(bool flip, bool useFaceAPI, double heightMult, double widthMult, double rollLimit, double yawLimit, int consecutiveWrongLimit)
+	public SettingsForm(bool flip, bool useFaceAPI, string azureSubKey, double heightMult, double widthMult, double rollLimit, double yawLimit, int consecutiveWrongLimit)
         {
             InitializeComponent();
 
+			cbFlip.IsChecked = flip;
 			cbFaceAPI.IsChecked = useFaceAPI;
-            cbFlip.IsChecked = flip;
+			tbAzureKey.Text = azureSubKey;
 			slHeight.Value = heightMult;
 			slWidth.Value = widthMult;
 			slRoll.Value = rollLimit;
@@ -49,8 +50,8 @@ namespace PosturaCSharp
 
 		private void btnReset_Click(object sender, RoutedEventArgs e)
 		{
-			cbFaceAPI.IsChecked = true;
 			cbFlip.IsChecked = true;
+			cbFaceAPI.IsChecked = true;
 			slHeight.Value = 1;
 			slWidth.Value = 1;
 			slRoll.Value = 50;

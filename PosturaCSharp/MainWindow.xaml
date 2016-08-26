@@ -5,9 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PosturaCSharp"
         mc:Ignorable="d"
-        Title="Postura" Height="500" Width="700" Closing="MainForm_FormClosing" Background="Blue" Deactivated="MainForm_Deactivated" Activated="MainForm_Activated" Topmost="False" SizeChanged="MainForm_SizeChanged">
+        Title="Postura" Height="500" Width="700" Closing="MainForm_FormClosing" Background="Blue" Deactivated="MainForm_Deactivated" Topmost="True" SizeChanged="MainForm_SizeChanged">
 	
-	<Grid x:Name="MainGrid" Background="Green">
+	<Grid x:Name="MainGrid" Background="Gold">
 		<Grid.RowDefinitions>
             <RowDefinition Height="8*"/>
             <RowDefinition Height="4*"/>
@@ -17,11 +17,11 @@
 		</Grid.RowDefinitions>
 
         <Viewbox x:Name="vbCountdownContainer" Grid.Row="1">
-            <!--Viewbox maxes font size-->
+            <!--Viewbox maximizes font size-->
             <TextBlock x:Name="tbCountdown" TextWrapping="Wrap" Foreground="Red" Text=""/>
         </Viewbox>
 
-		<Image x:Name="videoBox" Grid.Row="0" Grid.RowSpan="3" Loaded="videoBox_Loaded" RenderTransformOrigin="0.5,0.5" Panel.ZIndex="-1">
+		<Image x:Name="videoBox" Grid.Row="0" Grid.RowSpan="3" Loaded="videoBox_Loaded" RenderTransformOrigin="0.5,0.5" Panel.ZIndex="-1" MouseDown="videoBox_MouseDown">
 			<Image.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform ScaleX="-1"/>

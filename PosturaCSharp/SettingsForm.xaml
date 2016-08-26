@@ -19,6 +19,11 @@
 		</DockPanel>
 
 		<DockPanel Margin="5">
+			<Label Content="Azure key" IsEnabled="{Binding ElementName=cbFaceAPI, Path=IsChecked}"/>
+			<TextBox x:Name="tbAzureKey" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="3,0,0,0" IsEnabled="{Binding ElementName=cbFaceAPI, Path=IsChecked}"/>
+		</DockPanel>
+
+		<DockPanel Margin="5">
 			<Label Content="Height tolerance"/>
 			<Slider x:Name="slHeight" HorizontalAlignment="Stretch" Maximum="3" TickFrequency="0.1" TickPlacement="BottomRight" IsSnapToTickEnabled="True" AutoToolTipPlacement="BottomRight" AutoToolTipPrecision="1"/>
 		</DockPanel>
