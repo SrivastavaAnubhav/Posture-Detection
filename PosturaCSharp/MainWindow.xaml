@@ -5,23 +5,35 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PosturaCSharp"
         mc:Ignorable="d"
-        Title="Postura" Height="500" Width="700" Closing="MainForm_FormClosing" Background="Blue" Deactivated="MainForm_Deactivated" Topmost="True" SizeChanged="MainForm_SizeChanged">
-	
-	<Grid x:Name="MainGrid" Background="Gold">
+        Title="Postura"
+		Height="500"
+		Width="700"
+		Background="Blue"
+		Topmost="True"
+		Closing="MainForm_FormClosing" 
+		MouseDown="MainForm_MouseDown"
+		Deactivated="MainForm_Deactivated" 
+		SizeChanged="MainForm_SizeChanged">
+
+	<Grid x:Name="MainGrid" Background="#FF9999">
 		<Grid.RowDefinitions>
             <RowDefinition Height="8*"/>
             <RowDefinition Height="4*"/>
             <RowDefinition Height="8*"/>
-            <RowDefinition Height="1*"/>
+            <RowDefinition Height="1.2*"/>
 			<RowDefinition Height="2*"/>
 		</Grid.RowDefinitions>
+
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="1*"/>
+		</Grid.ColumnDefinitions>
 
         <Viewbox x:Name="vbCountdownContainer" Grid.Row="1">
             <!--Viewbox maximizes font size-->
             <TextBlock x:Name="tbCountdown" TextWrapping="Wrap" Foreground="Red" Text=""/>
         </Viewbox>
 
-		<Image x:Name="videoBox" Grid.Row="0" Grid.RowSpan="3" Loaded="videoBox_Loaded" RenderTransformOrigin="0.5,0.5" Panel.ZIndex="-1" MouseDown="videoBox_MouseDown">
+		<Image x:Name="videoBox" Grid.Row="0" Grid.RowSpan="3" Loaded="videoBox_Loaded" RenderTransformOrigin="0.5,0.5" Panel.ZIndex="-1">
 			<Image.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform ScaleX="-1"/>
@@ -40,14 +52,14 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="7*"/>
                 <ColumnDefinition Width="7*"/>
-                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="3*"/>
             </Grid.ColumnDefinitions>
 
             <Button x:Name="btnCalibrate" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Content="Calibrate!" FontFamily="Verdana" FontSize="18" Click="btnCalibrate_Click" Panel.ZIndex="2"/>
             <Button x:Name="btnContinue" Grid.Row="4" Grid.Column="1" Content="Continue!" FontFamily="Verdana" FontSize="18" Panel.ZIndex="1" Click="btnContinue_Click"/>
 
             <Button x:Name="btnSettings" Grid.Row="4" Grid.Column="2" FontFamily="Verdana" FontSize="18" Click="btnSettings_Click">
-                <Image Source="C:\Users\Anubhav\Documents\Miscellaneous\PosturaCSharp\PosturaCSharp\Resources\settings_gear.png" Margin="2,2,2,2"/>
+                <Image Source="Resources/settings_gear.png" Margin="2,2,2,2"/>
             </Button>
             
         </Grid>

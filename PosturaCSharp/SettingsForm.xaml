@@ -5,7 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PosturaCSharp"
         mc:Ignorable="d"
-        Title="Settings" SizeToContent="WidthAndHeight" WindowStyle="ToolWindow" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner">
+        Title="Settings"
+		SizeToContent="WidthAndHeight"
+		WindowStyle="ToolWindow"
+		ResizeMode="NoResize"
+		ShowInTaskbar="False"
+		WindowStartupLocation="CenterOwner">
 
 	<StackPanel Margin="10" Width="300">
 		<DockPanel Margin="5">

@@ -41,9 +41,8 @@ namespace PosturaCSharp
 
     public partial class MainWindow : Window
     {
-		// TODO: Tilt limit
-		// TODO: Figure out how to use resources properly
 		// TODO: Scale red box with form (for auto-minimize)
+		// TODO: Publish
 
 		// Can't use System.Drawing.Rectangle because it has no way to change visibility (can't delete it for recalibrate)
         private System.Windows.Shapes.Rectangle rctRed = new System.Windows.Shapes.Rectangle()
@@ -53,9 +52,10 @@ namespace PosturaCSharp
             StrokeThickness = 3,
             Visibility = Visibility.Hidden
         };
-		private double imageHeight, imageWidth, heightMult = 1, widthMult = 1, rollLimit = 50, yawLimit = 50, normalWidth = 700, normalHeight = 500, minHeight = 200;
+		private double imageHeight, imageWidth, heightMult = 1, widthMult = 1, rollLimit = 50, yawLimit = 50, normalWidth = 700, normalHeight = 500;
+		private const double minimizedHeight = 200;
 		private int consecutiveWrongLimit = 1, consecutiveWrong = 0;
-		private bool flip = true, settingsOpen = false, waitingForCalibrateConfirm = false, useFaceAPI = false;
+		private bool flip = true, isSettingsOpen = false, isWaitingForContinue = false, isRunning = false, isSmall = false, useFaceAPI = false;
 		private string azureSubKey = string.Empty;
 		private FilterInfoCollection videoDevicesList;
         private VideoCaptureDevice camera;
@@ -75,16 +75,12 @@ namespace PosturaCSharp
 			camera.SignalToStop();
             SettingsForm settingsForm = new SettingsForm(flip, useFaceAPI, azureSubKey, heightMult, widthMult, rollLimit, yawLimit, consecutiveWrongLimit);
             settingsForm.Owner = this;
-			settingsOpen = true;
+			isSettingsOpen = true;
 			settingsForm.ShowDialog();
 
 			// Code moves on when settings dialog stops
 
-			settingsOpen = false;
-			//if (!waitingForCalibrateConfirm)
-			//{
-			//	rctRed.Visibility = Visibility.Hidden;
-			//}
+			isSettingsOpen = false;
 
 			// Update settings
 			flip = (bool)settingsForm.cbFlip.IsChecked;
@@ -97,10 +93,10 @@ namespace PosturaCSharp
 			consecutiveWrongLimit = (int)settingsForm.slCWLimit.Value;
 			consecutiveWrong = 0;
 
-			// Converts -1 and 1 to bool
+			// Converts bool to -1 and 1
 			videoBox.RenderTransform = new ScaleTransform(Convert.ToInt32(!flip)*2 - 1, 1);
 
-			if (!waitingForCalibrateConfirm) camera.Start();
+			if (!isWaitingForContinue) camera.Start();
 
 		}
 
@@ -131,8 +127,8 @@ namespace PosturaCSharp
         private void camera_NewFrame(object sender, NewFrameEventArgs e)
         {
             // The reflection of the image is done using scale transform at the videoBox Image control
-            // While this means reflection must be done twice (once here, once when checking faces), it saves
-            // time, because reflection of the actual image is costly
+            // While this means reflection must be done twice (once here, once when checking faces), it 
+			// allows for no lag on the live feed (downside is processing takes a bit longer)
             videoBox.Dispatcher.Invoke(delegate { videoBox.Source = BitmapToImageSource(e.Frame); });
         }
 
@@ -165,9 +161,10 @@ namespace PosturaCSharp
             }
         }
 
-        private async void btnCalibrate_Click(object sender, RoutedEventArgs e)
+		private async void btnCalibrate_Click(object sender, RoutedEventArgs e)
         {
-			waitingForCalibrateConfirm = false;
+			isRunning = false;
+			isWaitingForContinue = false;
 			btnCalibrate.IsEnabled = false;
             btnContinue.IsEnabled = false;
             btnSettings.IsEnabled = false;
@@ -181,7 +178,7 @@ namespace PosturaCSharp
             await Countdown();
             camera.SignalToStop();
             VideoBoxFlash();
-			waitingForCalibrateConfirm = true;
+			isWaitingForContinue = true;
 
 			try
 			{
@@ -221,72 +218,67 @@ namespace PosturaCSharp
 			}
 		}
 
-        private void BoxFace(Face face)
+		private void MainForm_MouseDown(object sender, MouseButtonEventArgs e)
+		{
+			isSmall = false;
+			MainGrid.RowDefinitions[3].Height = new GridLength(1.2, GridUnitType.Star);
+			MainGrid.RowDefinitions[4].Height = new GridLength(2, GridUnitType.Star);
+			MainForm.ResizeMode = ResizeMode.CanResize;
+			MainForm.WindowStyle = WindowStyle.SingleBorderWindow;
+			MainForm.Height = normalHeight;
+			MainForm.Width = normalWidth;
+		}
+
+		private void BoxFace(Face face)
         {
+
             rctRed.Height = videoBox.ActualHeight * face.FaceRectangle.Height / imageHeight;
             rctRed.Width = videoBox.ActualWidth * face.FaceRectangle.Width / imageWidth;
-			double ratio = videoBox.Source.Width / videoBox.Source.Height;
             double leftPercent = face.FaceRectangle.Left / imageWidth;
             double topPercent = face.FaceRectangle.Top / imageHeight;
 
-            double bigWidth = MainForm.ActualWidth;
+            double bigWidth = MainGrid.ColumnDefinitions[0].ActualWidth;
             double bigHeight = 0;
-
-            //for (int i = Grid.GetColumn(videoBox); i < Grid.GetColumn(videoBox) + Grid.GetColumnSpan(videoBox); i++)
-            //{
-            //    bigWidth += MainGrid.ColumnDefinitions[i].ActualWidth;
-            //}
 
             for (int i = Grid.GetRow(videoBox); i < Grid.GetRow(videoBox) + Grid.GetRowSpan(videoBox); i++) {
                 bigHeight += MainGrid.RowDefinitions[i].ActualHeight;
             }
 
-            // Dividing by 2 because the space is on both sides
-            double trimWidth = (bigWidth - videoBox.ActualWidth) / 2;
-            double trimHeight = (bigHeight- videoBox.ActualHeight) / 2;
+			// At most one of these will be non-zero (can only be limited by either height or width, or neither, not both)
+			// May decide to put an if statement to reflect this later
+			// Dividing by 2 because the space is on both sides
+			double trimWidth = (bigWidth - videoBox.ActualWidth) / 2;
+            double trimHeight = (bigHeight - videoBox.ActualHeight) / 2;
 
             rctRed.Visibility = Visibility.Visible;
 
-            // Only one of these will actually be distinct
-            // May decide to put an if statement to reflect this later
-            Canvas.SetLeft(rctRed, videoBox.ActualWidth * leftPercent + trimWidth);
-            Canvas.SetTop(rctRed, videoBox.ActualHeight * topPercent + trimHeight);
-        }
-
-		private void videoBox_MouseDown(object sender, MouseButtonEventArgs e)
-		{
-			MainGrid.RowDefinitions[3].Height = new GridLength(1, GridUnitType.Star);
-			MainGrid.RowDefinitions[4].Height = new GridLength(2, GridUnitType.Star);
-			MainForm.ResizeMode = ResizeMode.CanResize;
-			MainForm.WindowStyle = WindowStyle.SingleBorderWindow;
-			MainForm.Width = normalWidth;
-			MainForm.Height = normalHeight;
-
-		}
-
-		private void MainForm_SizeChanged(object sender, SizeChangedEventArgs e)
-		{
-			if (MainForm.IsFocused)
-			{
-				normalHeight = MainForm.Height;
-				normalWidth = MainForm.Width;
-			}
+			Canvas.SetTop(rctRed, videoBox.ActualHeight * topPercent + trimHeight);
+			Canvas.SetLeft(rctRed, videoBox.ActualWidth * leftPercent + trimWidth);
 		}
 
 		private void MainForm_Deactivated(object sender, EventArgs e)
 		{
-			if (!settingsOpen)
+			if (!isSettingsOpen && !isSmall)
 			{
 				MainGrid.RowDefinitions[3].Height = new GridLength(0);
 				MainGrid.RowDefinitions[4].Height = new GridLength(0);
 				MainForm.ResizeMode = ResizeMode.NoResize;
 				MainForm.WindowStyle = WindowStyle.ToolWindow;
-				MainForm.Height = minHeight;
+				normalHeight = MainForm.Height;
+				normalWidth = MainForm.Width;
+				MainForm.Height = minimizedHeight;
+				isSmall = true;
 
-				// TODO: Do this using System.Windows.SystemParameters
-				// Accounts for top border size 
-				MainForm.Width = (MainForm.Height - 27) * imageWidth / imageHeight;
+				// Inner padding values (cannot change) are as follows: None = 7, SingleBorder/Tool = 8, 3D = 10
+				// Title bar thickness for tool is 25; 2 * 8 + 25 = 39 extra padding on height
+				// Width is then increased by 16 to account for padding on both sides
+				MainForm.Width = (MainForm.ActualHeight - 39) * imageWidth / imageHeight + 16;
 			}
+		}
+
+		private void MainForm_SizeChanged(object sender, SizeChangedEventArgs e)
+		{
+			if (isRunning || isWaitingForContinue) BoxFace(goodFace);
 		}
 
 		private async Task Countdown()
@@ -315,20 +307,19 @@ namespace PosturaCSharp
                 videoBox.Dispatcher.Invoke(delegate { currSource = (BitmapSource)videoBox.Source; });
 
 				var encoder = new PngBitmapEncoder();
-				var transbmp = new TransformedBitmap();
-				transbmp.BeginInit();
-				transbmp.Source = currSource;
+				var flipped_bmp = new TransformedBitmap();
+				flipped_bmp.BeginInit();
+				flipped_bmp.Source = currSource;
 
-				if (flip) transbmp.Transform = new ScaleTransform(-1, 1);
+				if (flip) flipped_bmp.Transform = new ScaleTransform(-1, 1);
 
-				transbmp.EndInit();
+				flipped_bmp.EndInit();
 
-				encoder.Frames.Add(BitmapFrame.Create(transbmp));
+				encoder.Frames.Add(BitmapFrame.Create(flipped_bmp));
 				encoder.Save(imageFileStream);
 
 				if (useFaceAPI)
 				{
-
 					imageFileStream.Position = 0;
 
 					FaceServiceClient faceServiceClient = new FaceServiceClient(azureSubKey);
@@ -352,6 +343,7 @@ namespace PosturaCSharp
 		{
 			Image<Bgr, byte> cv_bmp = new Image<Bgr, byte>(bmp);
 			Image<Gray, byte> grayframe = cv_bmp.Convert<Gray, byte>();
+
 			CascadeClassifier cascadeClassifier = new CascadeClassifier(@"C:\Users\Anubhav\Documents\Miscellaneous\PosturaCSharp\haarcascade_frontalface_default.xml");
 
 			System.Drawing.Rectangle[] faceRects = cascadeClassifier.DetectMultiScale(grayframe, 1.1, 10, System.Drawing.Size.Empty);
@@ -377,8 +369,9 @@ namespace PosturaCSharp
 
         private async void btnContinue_Click(object sender, RoutedEventArgs e)
         {
+			isRunning = true;
 			Grid.SetColumnSpan(btnCalibrate, 2);
-			waitingForCalibrateConfirm = false;
+			isWaitingForContinue = false;
 			camera.Start();
 
 			await StartChecking();
@@ -388,7 +381,7 @@ namespace PosturaCSharp
 		{
 			while (true)
 			{
-				if (!settingsOpen)
+				if (!isSettingsOpen)
 				{
 					sw.Restart();
 
@@ -451,28 +444,4 @@ namespace PosturaCSharp
             });
         }
     }
-
-	//private Bitmap GetBitmap(BitmapSource source)
-	//{
-	//	// Code from josef.axa on stack overflow
-	//	Bitmap bmp = new Bitmap(source.PixelWidth, source.PixelHeight, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-	//	BitmapData data = bmp.LockBits(
-	//	  new System.Drawing.Rectangle(System.Drawing.Point.Empty, bmp.Size),
-	//	  ImageLockMode.WriteOnly,
-	//	  System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-	//	source.CopyPixels(
-	//	  Int32Rect.Empty,
-	//	  data.Scan0,
-	//	  data.Height * data.Stride,
-	//	  data.Stride);
-	//	bmp.UnlockBits(data);
-	//	return bmp;
-	//}
-
-
-	//private async Task<Face[]> GetJSONEmguCV()
-	//{
-	//	return null;
-	//}
-
 }
