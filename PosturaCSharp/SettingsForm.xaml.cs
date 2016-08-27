@@ -46,7 +46,6 @@ namespace PosturaCSharp
 
 		private void btnSave_Click(object sender, RoutedEventArgs e)
 		{
-			// TODO: Save settings
 			using (StreamWriter sw = new StreamWriter("FaceSettings.txt"))
 			{
 				sw.WriteLine(cbFlip.IsChecked);

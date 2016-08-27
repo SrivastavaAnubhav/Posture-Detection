@@ -285,7 +285,7 @@ namespace PosturaCSharp
 				isSmall = true;
 
 				// Inner padding values (cannot change) are as follows: None = 7, SingleBorder/Tool = 8, 3D = 10
-				// Title bar thickness for tool is 25; 2 * 8 + 25 = 39 extra padding on height
+				// Title bar thickness for tool is 25; 2 * 8 + 23 = 39 extra padding on height
 				// Width is then increased by 16 to account for padding on both sides
 				MainForm.Width = (MainForm.ActualHeight - 39) * imageWidth / imageHeight + 16;
 			}
