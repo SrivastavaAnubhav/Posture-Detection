@@ -42,7 +42,8 @@ namespace PosturaCSharp
     public partial class MainWindow : Window
     {
 		// TODO: Publish
-		
+		// TODO: Add height and width support
+
 		// Can't use System.Drawing.Rectangle because it has no way to change visibility (can't delete it for recalibrate)
         private System.Windows.Shapes.Rectangle rctRed = new System.Windows.Shapes.Rectangle()
         {
@@ -51,7 +52,7 @@ namespace PosturaCSharp
             StrokeThickness = 3,
             Visibility = Visibility.Hidden
         };
-		private double imageHeight, imageWidth, heightMult = 0.5, widthMult = 0.5, rollLimit = 50, yawLimit = 50, normalWidth = 700, normalHeight = 500;
+		private double imageHeight, imageWidth, topMult = 0.5, leftMult = 0.5, heightMult = 0.5, rollLimit = 50, yawLimit = 50, normalWidth = 700, normalHeight = 500;
 		private const double minimizedHeight = 200;
 		private int consecutiveWrongLimit = 1, consecutiveWrong = 0;
 		private bool flip = true, isSettingsOpen = false, isWaitingForContinue = false, isRunning = false, isSmall = false, useFaceAPI = false;
@@ -79,8 +80,9 @@ namespace PosturaCSharp
 					flip = Convert.ToBoolean(sr.ReadLine());
 					useFaceAPI = Convert.ToBoolean(sr.ReadLine());
 					azureSubKey = sr.ReadLine();
+					topMult = Convert.ToDouble(sr.ReadLine());
+					leftMult = Convert.ToDouble(sr.ReadLine());
 					heightMult = Convert.ToDouble(sr.ReadLine());
-					widthMult = Convert.ToDouble(sr.ReadLine());
 					rollLimit = Convert.ToDouble(sr.ReadLine());
 					yawLimit = Convert.ToDouble(sr.ReadLine());
 					consecutiveWrongLimit = Convert.ToInt32(sr.ReadLine());
@@ -91,7 +93,7 @@ namespace PosturaCSharp
         private void btnSettings_Click(object sender, RoutedEventArgs e)
         {
 			camera.SignalToStop();
-            SettingsForm settingsForm = new SettingsForm(flip, useFaceAPI, azureSubKey, heightMult, widthMult, rollLimit, yawLimit, consecutiveWrongLimit);
+            SettingsForm settingsForm = new SettingsForm(flip, useFaceAPI, azureSubKey, topMult, leftMult, heightMult, rollLimit, yawLimit, consecutiveWrongLimit);
             settingsForm.Owner = this;
 			isSettingsOpen = true;
 			settingsForm.ShowDialog();
@@ -101,15 +103,7 @@ namespace PosturaCSharp
 			isSettingsOpen = false;
 
 			// Update settings
-			flip = (bool)settingsForm.cbFlip.IsChecked;
-			useFaceAPI = (bool)settingsForm.cbFaceAPI.IsChecked;
-			azureSubKey = settingsForm.tbAzureKey.Text;
-			heightMult = settingsForm.slHeight.Value;
-			widthMult = settingsForm.slWidth.Value;
-			rollLimit = settingsForm.slRoll.Value;
-			yawLimit = settingsForm.slYaw.Value;
-			consecutiveWrongLimit = (int)settingsForm.slCWLimit.Value;
-			consecutiveWrong = 0;
+			LoadAndParseSettings();
 
 			// Converts bool to -1 and 1
 			videoBox.RenderTransform = new ScaleTransform(Convert.ToInt32(!flip)*2 - 1, 1);
@@ -212,8 +206,7 @@ namespace PosturaCSharp
 				{
 					goodFace = faces[0];
 					BoxFace(faces[0]);
-					lblNotifier.Content = "Closer to 0 is better\n";
-					lblNotifier.Content += string.Format("Pitch: {0}, Roll: {1}, Yaw: {2}", faces[0].FaceAttributes.HeadPose.Pitch, faces[0].FaceAttributes.HeadPose.Roll, faces[0].FaceAttributes.HeadPose.Yaw);
+					if (useFaceAPI) lblNotifier.Content += string.Format("Pitch: {0}, Roll: {1}, Yaw: {2}", faces[0].FaceAttributes.HeadPose.Pitch, faces[0].FaceAttributes.HeadPose.Roll, faces[0].FaceAttributes.HeadPose.Yaw);
 					Grid.SetColumnSpan(btnCalibrate, 1);
 					btnContinue.IsEnabled = true;
 					Grid.SetColumnSpan(btnContinue, 1);
@@ -433,11 +426,32 @@ namespace PosturaCSharp
 
 		private bool IsPostureBad(Face faceToCheck)
 		{
-
-			return Math.Abs(faceToCheck.FaceRectangle.Left - goodFace.FaceRectangle.Left) > widthMult*goodFace.FaceRectangle.Width ||
-				Math.Abs(faceToCheck.FaceRectangle.Top- goodFace.FaceRectangle.Top) > heightMult*goodFace.FaceRectangle.Height ||
-				Math.Abs(faceToCheck.FaceAttributes.HeadPose.Roll - goodFace.FaceAttributes.HeadPose.Roll) > rollLimit ||
-				Math.Abs(faceToCheck.FaceAttributes.HeadPose.Yaw - goodFace.FaceAttributes.HeadPose.Yaw) > yawLimit;
+			if (Math.Abs(faceToCheck.FaceRectangle.Left - goodFace.FaceRectangle.Left) > leftMult * goodFace.FaceRectangle.Width)
+			{
+				lblNotifier.Content = "Too far left/right";
+				return true;
+			}
+			else if (Math.Abs(faceToCheck.FaceRectangle.Top - goodFace.FaceRectangle.Top) > topMult * goodFace.FaceRectangle.Height)
+			{
+				lblNotifier.Content = "Too far up/down";
+				return true;
+			}
+			else if (Math.Abs(faceToCheck.FaceRectangle.Height - goodFace.FaceRectangle.Height) > heightMult * goodFace.FaceRectangle.Height)
+			{
+				lblNotifier.Content = "Too near/far";
+				return true;
+			}
+			else if (Math.Abs(faceToCheck.FaceAttributes.HeadPose.Roll - goodFace.FaceAttributes.HeadPose.Roll) > rollLimit)
+			{
+				lblNotifier.Content = "Too much roll";
+				return true;
+			}
+			else if (Math.Abs(faceToCheck.FaceAttributes.HeadPose.Yaw - goodFace.FaceAttributes.HeadPose.Yaw) > yawLimit)
+			{
+				lblNotifier.Content = "Too much yaw";
+				return true;
+			}
+			else return false;
 		}
 
 		private void SavePicture()

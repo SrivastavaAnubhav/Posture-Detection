@@ -30,15 +30,16 @@ namespace PosturaCSharp
 		public double yaw { get; private set; }
 		public int cwLim { get; private set; }
 
-	public SettingsForm(bool flip, bool useFaceAPI, string azureSubKey, double heightMult, double widthMult, double rollLimit, double yawLimit, int consecutiveWrongLimit)
+	public SettingsForm(bool flip, bool useFaceAPI, string azureSubKey, double topMult, double leftMult, double heightMult, double rollLimit, double yawLimit, int consecutiveWrongLimit)
         {
             InitializeComponent();
 
 			cbFlip.IsChecked = flip;
 			cbFaceAPI.IsChecked = useFaceAPI;
 			tbAzureKey.Text = azureSubKey;
+			slTop.Value = topMult;
+			slLeft.Value = leftMult;
 			slHeight.Value = heightMult;
-			slWidth.Value = widthMult;
 			slRoll.Value = rollLimit;
 			slYaw.Value = yawLimit;
 			slCWLimit.Value = consecutiveWrongLimit;
@@ -51,8 +52,9 @@ namespace PosturaCSharp
 				sw.WriteLine(cbFlip.IsChecked);
 				sw.WriteLine(cbFaceAPI.IsChecked);
 				sw.WriteLine(tbAzureKey.Text);
+				sw.WriteLine(slTop.Value);
+				sw.WriteLine(slLeft.Value);
 				sw.WriteLine(slHeight.Value);
-				sw.WriteLine(slWidth.Value);
 				sw.WriteLine(slRoll.Value);
 				sw.WriteLine(slYaw.Value);
 				sw.WriteLine(slCWLimit.Value);
@@ -65,8 +67,9 @@ namespace PosturaCSharp
 		{
 			cbFlip.IsChecked = true;
 			cbFaceAPI.IsChecked = true;
-			slHeight.Value = 1;
-			slWidth.Value = 1;
+			tbAzureKey.Text = string.Empty;
+			slTop.Value = 1;
+			slLeft.Value = 1;
 			slRoll.Value = 50;
 			slYaw.Value = 50;
 			slCWLimit.Value = 1;
