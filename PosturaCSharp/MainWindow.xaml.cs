@@ -51,7 +51,7 @@ namespace PosturaCSharp
             StrokeThickness = 3,
             Visibility = Visibility.Hidden
         };
-		private double imageHeight, imageWidth, heightMult = 1, widthMult = 1, rollLimit = 50, yawLimit = 50, normalWidth = 700, normalHeight = 500;
+		private double imageHeight, imageWidth, heightMult = 0.5, widthMult = 0.5, rollLimit = 50, yawLimit = 50, normalWidth = 700, normalHeight = 500;
 		private const double minimizedHeight = 200;
 		private int consecutiveWrongLimit = 1, consecutiveWrong = 0;
 		private bool flip = true, isSettingsOpen = false, isWaitingForContinue = false, isRunning = false, isSmall = false, useFaceAPI = false;
@@ -63,7 +63,7 @@ namespace PosturaCSharp
 
         public MainWindow()
         {
-            InitializeComponent();
+			InitializeComponent();
 			LoadAndParseSettings();
 			MainForm.Height = normalHeight;
 			MainForm.Width = normalWidth;
@@ -72,16 +72,19 @@ namespace PosturaCSharp
 
 		private void LoadAndParseSettings()
 		{
-			using (StreamReader sr = new StreamReader("FaceSettings.txt"))
+			if (File.Exists("FaceSettings.txt"))
 			{
-				flip = Convert.ToBoolean(sr.ReadLine());
-				useFaceAPI = Convert.ToBoolean(sr.ReadLine());
-				azureSubKey = sr.ReadLine();
-				heightMult = Convert.ToDouble(sr.ReadLine());
-				widthMult = Convert.ToDouble(sr.ReadLine());
-				rollLimit = Convert.ToDouble(sr.ReadLine());
-				yawLimit = Convert.ToDouble(sr.ReadLine());
-				consecutiveWrongLimit = Convert.ToInt32(sr.ReadLine());
+				using (StreamReader sr = new StreamReader("FaceSettings.txt"))
+				{
+					flip = Convert.ToBoolean(sr.ReadLine());
+					useFaceAPI = Convert.ToBoolean(sr.ReadLine());
+					azureSubKey = sr.ReadLine();
+					heightMult = Convert.ToDouble(sr.ReadLine());
+					widthMult = Convert.ToDouble(sr.ReadLine());
+					rollLimit = Convert.ToDouble(sr.ReadLine());
+					yawLimit = Convert.ToDouble(sr.ReadLine());
+					consecutiveWrongLimit = Convert.ToInt32(sr.ReadLine());
+				}
 			}
 		}
 
@@ -293,7 +296,7 @@ namespace PosturaCSharp
 
 		private void MainForm_SizeChanged(object sender, SizeChangedEventArgs e)
 		{
-			if (isRunning || isWaitingForContinue) BoxFace(goodFace);
+			if ((isRunning || isWaitingForContinue) && goodFace != null) BoxFace(goodFace);
 		}
 
 		private async Task Countdown()
