@@ -12,6 +12,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
+using System.IO;
+
 
 namespace PosturaCSharp
 {
@@ -45,6 +47,18 @@ namespace PosturaCSharp
 		private void btnSave_Click(object sender, RoutedEventArgs e)
 		{
 			// TODO: Save settings
+			using (StreamWriter sw = new StreamWriter("FaceSettings.txt"))
+			{
+				sw.WriteLine(cbFlip.IsChecked);
+				sw.WriteLine(cbFaceAPI.IsChecked);
+				sw.WriteLine(tbAzureKey.Text);
+				sw.WriteLine(slHeight.Value);
+				sw.WriteLine(slWidth.Value);
+				sw.WriteLine(slRoll.Value);
+				sw.WriteLine(slYaw.Value);
+				sw.WriteLine(slCWLimit.Value);
+			}
+
 			this.Close();
 		}
 

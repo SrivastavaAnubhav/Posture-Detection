@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PosturaCSharp", "PosturaCSharp\PosturaCSharp.csproj", "{AE5870D6-E763-4816-B8EC-82C8689E7274}"
 EndProject
@@ -13,6 +13,7 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{AE5870D6-E763-4816-B8EC-82C8689E7274}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AE5870D6-E763-4816-B8EC-82C8689E7274}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE5870D6-E763-4816-B8EC-82C8689E7274}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
 		{AE5870D6-E763-4816-B8EC-82C8689E7274}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE5870D6-E763-4816-B8EC-82C8689E7274}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection

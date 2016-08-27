@@ -41,9 +41,8 @@ namespace PosturaCSharp
 
     public partial class MainWindow : Window
     {
-		// TODO: Scale red box with form (for auto-minimize)
 		// TODO: Publish
-
+		
 		// Can't use System.Drawing.Rectangle because it has no way to change visibility (can't delete it for recalibrate)
         private System.Windows.Shapes.Rectangle rctRed = new System.Windows.Shapes.Rectangle()
         {
@@ -65,10 +64,26 @@ namespace PosturaCSharp
         public MainWindow()
         {
             InitializeComponent();
+			LoadAndParseSettings();
 			MainForm.Height = normalHeight;
 			MainForm.Width = normalWidth;
 			rctHolder.Children.Add(rctRed);
-        }
+		}
+
+		private void LoadAndParseSettings()
+		{
+			using (StreamReader sr = new StreamReader("FaceSettings.txt"))
+			{
+				flip = Convert.ToBoolean(sr.ReadLine());
+				useFaceAPI = Convert.ToBoolean(sr.ReadLine());
+				azureSubKey = sr.ReadLine();
+				heightMult = Convert.ToDouble(sr.ReadLine());
+				widthMult = Convert.ToDouble(sr.ReadLine());
+				rollLimit = Convert.ToDouble(sr.ReadLine());
+				yawLimit = Convert.ToDouble(sr.ReadLine());
+				consecutiveWrongLimit = Convert.ToInt32(sr.ReadLine());
+			}
+		}
 
         private void btnSettings_Click(object sender, RoutedEventArgs e)
         {
@@ -344,7 +359,7 @@ namespace PosturaCSharp
 			Image<Bgr, byte> cv_bmp = new Image<Bgr, byte>(bmp);
 			Image<Gray, byte> grayframe = cv_bmp.Convert<Gray, byte>();
 
-			CascadeClassifier cascadeClassifier = new CascadeClassifier(@"C:\Users\Anubhav\Documents\Miscellaneous\PosturaCSharp\haarcascade_frontalface_default.xml");
+			CascadeClassifier cascadeClassifier = new CascadeClassifier(AppDomain.CurrentDomain.BaseDirectory + "\\Resources\\haarcascade_frontalface_default.xml");
 
 			System.Drawing.Rectangle[] faceRects = cascadeClassifier.DetectMultiScale(grayframe, 1.1, 10, System.Drawing.Size.Empty);
 
