@@ -1,26 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-
-using System.IO;
 
 
 namespace PosturaCSharp
 {
-    /// <summary>
-    /// Interaction logic for SettingsForm.xaml
-    /// </summary>
-    public partial class SettingsForm : Window
+	/// <summary>
+	/// Interaction logic for SettingsForm.xaml
+	/// </summary>
+	public partial class SettingsForm : Window
     {
         public bool wantFlip { get; private set; }
 		public bool useFaceAPI { get; private set; }
@@ -67,7 +54,7 @@ namespace PosturaCSharp
 		{
 			cbFlip.IsChecked = true;
 			cbFaceAPI.IsChecked = true;
-			tbAzureKey.Text = string.Empty;
+			tbAzureKey.Text = "";
 			slTop.Value = 1;
 			slLeft.Value = 1;
 			slRoll.Value = 50;

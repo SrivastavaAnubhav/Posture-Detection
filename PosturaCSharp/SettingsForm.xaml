@@ -60,7 +60,7 @@
 
 		<DockPanel Margin="5">
 			<Button x:Name="btnReset" Content="Reset" Click="btnReset_Click"/>
-			<Button x:Name="btnSave" Content="Save" Click="btnSave_Click"/>
+			<Button x:Name="btnSave" Content="Save and close" Click="btnSave_Click"/>
 		</DockPanel>
 	</StackPanel>
 	
