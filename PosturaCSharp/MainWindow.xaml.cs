@@ -64,7 +64,6 @@ namespace PosturaCSharp
             MainForm.Height = normalHeight;
             MainForm.Width = normalWidth;
             rctHolder.Children.Add(rctRed);
-
         }
 
         private void LoadAndParseSettings()
@@ -169,6 +168,8 @@ namespace PosturaCSharp
             {
                 camera.SignalToStop();
             }
+
+            runningThread.Abort();
         }
 
         private async void btnCalibrate_Click(object sender, RoutedEventArgs e)
@@ -186,6 +187,7 @@ namespace PosturaCSharp
 
             await Countdown();
             camera.SignalToStop();
+            await Task.Factory.StartNew(() => VideoBoxFlash());
             VideoBoxFlash();
 
             try
