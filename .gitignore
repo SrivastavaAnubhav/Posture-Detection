@@ -4,3 +4,7 @@ PosturaCSharp/obj/
 *.user
 .vs/
 packages/
+Application Files/
+setup.exe
+PosturaCSharp.application
+*.pfx
