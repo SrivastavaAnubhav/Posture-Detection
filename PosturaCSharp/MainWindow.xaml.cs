@@ -308,8 +308,11 @@ namespace PosturaCSharp
 
         private void VideoBoxFlash()
         {
-            videoBox.BeginAnimation(System.Windows.Controls.Image.OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(500)));
-            videoBox.BeginAnimation(System.Windows.Controls.Image.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(1000)));
+            videoBox.Dispatcher.Invoke(delegate
+            {
+                videoBox.BeginAnimation(System.Windows.Controls.Image.OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(500)));
+                videoBox.BeginAnimation(System.Windows.Controls.Image.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(1000)));
+            });
         }
 
         private async void btnContinue_Click(object sender, RoutedEventArgs e)
