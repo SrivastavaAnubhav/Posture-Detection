@@ -56,6 +56,7 @@ namespace PosturaCSharp
         private Face goodFace;
         private Thread runningThread;
         private AppState appState = AppState.Started;
+        CascadeClassifier cascadeClassifier = new CascadeClassifier(AppDomain.CurrentDomain.BaseDirectory + "\\Resources\\haarcascade_frontalface_default.xml");
 
         public MainWindow()
         {
@@ -169,7 +170,7 @@ namespace PosturaCSharp
                 camera.SignalToStop();
             }
 
-            runningThread.Abort();
+            //if (runningThread != null) runningThread.Abort();
         }
 
         private async void btnCalibrate_Click(object sender, RoutedEventArgs e)
@@ -187,9 +188,26 @@ namespace PosturaCSharp
 
             await Countdown();
             camera.SignalToStop();
-            await Task.Factory.StartNew(() => VideoBoxFlash());
-            VideoBoxFlash();
 
+            // TODO: Is this the best way to do this?
+            DoubleAnimation fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(500));
+            DoubleAnimation fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(1000));
+            fadeIn.Completed += new EventHandler(fadeIn_Completed);
+            videoBox.Dispatcher.Invoke(delegate
+            {
+                videoBox.BeginAnimation(System.Windows.Controls.Image.OpacityProperty, fadeOut);
+                videoBox.BeginAnimation(System.Windows.Controls.Image.OpacityProperty, fadeIn);
+            });
+ 
+        }
+
+        private void fadeIn_Completed(object sender, EventArgs e)
+        {
+            Calibrate();
+        }
+
+        private async void Calibrate()
+        {
             try
             {
                 sw.Start();
@@ -306,15 +324,6 @@ namespace PosturaCSharp
             tbCountdown.Dispatcher.Invoke(delegate { tbCountdown.Text = ""; });
         }
 
-        private void VideoBoxFlash()
-        {
-            videoBox.Dispatcher.Invoke(delegate
-            {
-                videoBox.BeginAnimation(System.Windows.Controls.Image.OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(500)));
-                videoBox.BeginAnimation(System.Windows.Controls.Image.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(1000)));
-            });
-        }
-
         private async void btnContinue_Click(object sender, RoutedEventArgs e)
         {
             appState = AppState.Running;
@@ -327,7 +336,6 @@ namespace PosturaCSharp
             }
             else
             {
-                // TODO: This might be awful coding practice, I will check tomorrow
                 runningThread = new Thread(new ThreadStart(CheckEmguCV));
                 runningThread.IsBackground = true;
                 runningThread.Name = "EmguChecking";
@@ -455,9 +463,7 @@ namespace PosturaCSharp
 
                 using (Image<Gray, byte> grayframe = new Image<Gray, byte>(bmp))
                 {
-                    CascadeClassifier cascadeClassifier = new CascadeClassifier(AppDomain.CurrentDomain.BaseDirectory + "\\Resources\\haarcascade_frontalface_default.xml");
                     System.Drawing.Rectangle[] faceRects = cascadeClassifier.DetectMultiScale(grayframe, 1.1, 10, System.Drawing.Size.Empty);
-                    cascadeClassifier.Dispose();
 
                     Face[] faces = new Face[faceRects.Length];
                     for (int i = 0; i < faceRects.Length; i++)
