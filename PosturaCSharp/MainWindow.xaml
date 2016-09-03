@@ -9,7 +9,7 @@
 		Height="500"
 		Width="700"
 		Background="Blue"
-		Topmost="True"
+		Topmost="False"
 		Closing="MainForm_FormClosing" 
 		MouseDown="MainForm_MouseDown"
 		Deactivated="MainForm_Deactivated" 

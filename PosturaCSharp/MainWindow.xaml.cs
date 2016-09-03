@@ -26,8 +26,8 @@ namespace PosturaCSharp
 
     public partial class MainWindow : Window
     {
-        // TODO: Learn what BackgroundWorker and ThreadPool classes are so that runningThread closes automatically, and it can be made local
-        // TODO: Publish
+        // TODO: Add cancellation tokens to checking functions to allow switching without recalibrating
+        // TODO: Green rectangle?
 
         private enum AppState
         {
@@ -170,7 +170,7 @@ namespace PosturaCSharp
                 camera.SignalToStop();
             }
 
-            //if (runningThread != null) runningThread.Abort();
+            if (runningThread != null) runningThread.Abort();
         }
 
         private async void btnCalibrate_Click(object sender, RoutedEventArgs e)
@@ -201,12 +201,12 @@ namespace PosturaCSharp
  
         }
 
-        private void fadeIn_Completed(object sender, EventArgs e)
+        private async void fadeIn_Completed(object sender, EventArgs e)
         {
-            Calibrate();
+            await Calibrate();
         }
 
-        private async void Calibrate()
+        private async Task Calibrate()
         {
             try
             {
@@ -222,7 +222,7 @@ namespace PosturaCSharp
                 {
                     goodFace = faces[0];
                     BoxFace(faces[0]);
-                    if (useFaceAPI && lblNotifier.Content.ToString() == "")
+                    if (useFaceAPI)
                     {
                         lblNotifier.Content = string.Format("Pitch: {0}, Roll: {1}, Yaw: {2}", faces[0].FaceAttributes.HeadPose.Pitch, faces[0].FaceAttributes.HeadPose.Roll, faces[0].FaceAttributes.HeadPose.Yaw);
                     }
@@ -368,7 +368,6 @@ namespace PosturaCSharp
                     sw.Stop();
                     lblLag.Dispatcher.Invoke(() => lblLag.Content = sw.ElapsedMilliseconds + "ms");
                 }
-                // Can set to Timeout.Infinite then use thread.interrupt instead
                 else Thread.Sleep(100);
             }
         }
