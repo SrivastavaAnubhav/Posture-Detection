@@ -66,6 +66,9 @@ namespace PosturaCSharp
             rctHolder.Children.Add(rctRed);
         }
 
+        /// <summary>
+        /// Loads existing settings at startup
+        /// </summary>
         private void LoadAndParseSettings()
         {
             if (File.Exists("FaceSettings.txt"))
@@ -85,6 +88,9 @@ namespace PosturaCSharp
             }
         }
 
+        /// <summary>
+        /// Opens the settings form with the current parameters and sets focus
+        /// </summary>
         private void btnSettings_Click(object sender, RoutedEventArgs e)
         {
             camera.SignalToStop();
@@ -109,6 +115,9 @@ namespace PosturaCSharp
 
         }
 
+        /// <summary>
+        /// Loads all video devices present (e.g. Lenovo EasyCam) and selects default
+        /// </summary>
         private void videoBox_Loaded(object sender, RoutedEventArgs e)
         {
             videoDevicesList = new FilterInfoCollection(FilterCategory.VideoInputDevice);
@@ -125,6 +134,9 @@ namespace PosturaCSharp
             }
         }
 
+        /// <summary>
+        /// Changes the camera device when the changed in the selection box
+        /// </summary>
         private void cbDeviceList_SelectionChanged(object sender, EventArgs e)
         {
             if (camera.IsRunning) camera.SignalToStop();
@@ -133,6 +145,9 @@ namespace PosturaCSharp
             camera.Start();
         }
 
+        /// <summary>
+        /// Captures a new image and displays it (this is how a camera works)
+        /// </summary>
         private void camera_NewFrame(object sender, NewFrameEventArgs e)
         {
             // The reflection of the image is done using scale transform at the videoBox Image control
@@ -141,11 +156,15 @@ namespace PosturaCSharp
             videoBox.Dispatcher.Invoke(delegate { videoBox.Source = BitmapToImageSource(e.Frame); });
         }
 
+        /// <summary>
+        /// Creates a BitmapImage (which can be fed into videoBox) from a Bitmap
+        /// </summary>
+        /// <param name="bitmap">The input image</param>
+        /// <returns></returns>
         private BitmapImage BitmapToImageSource(Bitmap bitmap)
         {
             using (MemoryStream memory = new MemoryStream())
             {
-                // Creates a BitmapImage (which can be fed into videoBox) from a Bitmap
                 bitmap.Save(memory, System.Drawing.Imaging.ImageFormat.Bmp);
                 memory.Position = 0;
                 BitmapImage bitmapimage = new BitmapImage();
@@ -153,7 +172,7 @@ namespace PosturaCSharp
                 bitmapimage.StreamSource = memory;
                 bitmapimage.CacheOption = BitmapCacheOption.OnLoad;
                 bitmapimage.EndInit();
-                bitmapimage.Freeze();
+                bitmapimage.Freeze(); // prevents changing, but for now this is just a safeguard
 
                 imageWidth = bitmapimage.Width;
                 imageHeight = bitmapimage.Height;
@@ -162,6 +181,9 @@ namespace PosturaCSharp
             }
         }
 
+        /// <summary>
+        /// Stops camera on close and closes main thread
+        /// </summary>
         private void MainForm_FormClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             if (camera.IsRunning)
@@ -172,6 +194,10 @@ namespace PosturaCSharp
             if (runningThread != null) runningThread.Abort();
         }
 
+        /// <summary>
+        /// Updates the display for after the calibration photo (there's a nice camera 
+        /// flash effect too!). Mostly disabling buttons and setting variables.
+        /// </summary>
         private async void btnCalibrate_Click(object sender, RoutedEventArgs e)
         {
             btnCalibrate.IsEnabled = false;
@@ -189,6 +215,7 @@ namespace PosturaCSharp
             camera.SignalToStop();
 
             // TODO: Is this the best way to do this?
+            // Camera flash
             DoubleAnimation fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(500));
             DoubleAnimation fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(1000));
             fadeIn.Completed += new EventHandler(fadeIn_Completed);
@@ -205,25 +232,34 @@ namespace PosturaCSharp
             Calibrate();
         }
 
+        /// <summary>
+        /// Takes the calibration photo and boxes it
+        /// </summary>
         private async void Calibrate()
         {
             try
             {
                 sw.Start();
 
+                // Gets the list of faces using preferred method
                 Face[] faces = useFaceAPI ? await GetFacesFaceAPIAsync() : GetFacesEmguCV();
 
+                // Time delay
                 sw.Stop();
                 lblLag.Content = sw.ElapsedMilliseconds + "ms";
                 sw.Reset();
 
+                // Write debugging coordinates if possible
                 if (faces.Length > 0)
                 {
                     goodFace = faces[0];
                     BoxFace(faces[0]);
                     if (useFaceAPI)
                     {
-                        lblNotifier.Content = string.Format("Pitch: {0}, Roll: {1}, Yaw: {2}", faces[0].FaceAttributes.HeadPose.Pitch, faces[0].FaceAttributes.HeadPose.Roll, faces[0].FaceAttributes.HeadPose.Yaw);
+                        lblNotifier.Content = string.Format("Pitch: {0}, Roll: {1}, Yaw: {2}", 
+                            faces[0].FaceAttributes.HeadPose.Pitch,
+                            faces[0].FaceAttributes.HeadPose.Roll,
+                            faces[0].FaceAttributes.HeadPose.Yaw);
                     }
                     else lblNotifier.Content = "";
                     Grid.SetColumnSpan(btnCalibrate, 1);
@@ -238,6 +274,7 @@ namespace PosturaCSharp
             }
             catch (FaceAPIException ex)
             {
+                // For FaceAPI usage, show the failure
                 tbCountdown.Text = ex.ErrorMessage;
             }
             finally
@@ -249,6 +286,9 @@ namespace PosturaCSharp
             }
         }
 
+        /// <summary>
+        /// Resets focus and re-enlarges on mouse click
+        /// </summary>
         private void MainForm_MouseDown(object sender, MouseButtonEventArgs e)
         {
             isSmall = false;
@@ -260,6 +300,10 @@ namespace PosturaCSharp
             MainForm.Width = normalWidth;
         }
 
+        /// <summary>
+        /// Draws a box around the given face
+        /// </summary>
+        /// <param name="face">Face to be boxed</param>
         private void BoxFace(Face face)
         {
             // Note to self: setting rctRed's properties will need dispatcher if done through EmguCV in the future
@@ -288,6 +332,12 @@ namespace PosturaCSharp
             Canvas.SetLeft(rctRed, videoBox.ActualWidth * leftPercent + trimWidth);
         }
 
+        /// <summary>
+        /// Makes the form small when deactivated but keeps it on top so that posture can
+        /// be monitored.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void MainForm_Deactivated(object sender, EventArgs e)
         {
             if (appState != AppState.Settings && !isSmall)
@@ -308,6 +358,9 @@ namespace PosturaCSharp
             }
         }
 
+        /// <summary>
+        /// Redraw the face box if the form is resized
+        /// </summary>
         private void MainForm_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             if ((appState == AppState.Running || appState == AppState.WaitingForContinue) && goodFace != null) BoxFace(goodFace);
@@ -440,6 +493,10 @@ namespace PosturaCSharp
             }
         }
 
+        /// <summary>
+        /// Gets the list of all faces from EmguCV
+        /// </summary>
+        /// <returns>Returns an array of all faces according to EmguCV</returns>
         private Face[] GetFacesEmguCV()
         {
             using (MemoryStream imageFileStream = new MemoryStream())
@@ -453,6 +510,7 @@ namespace PosturaCSharp
                 flipped_bmp.BeginInit();
                 flipped_bmp.Source = currSource;
 
+                // Horizontally flips if desired
                 if (flip) flipped_bmp.Transform = new ScaleTransform(-1, 1);
 
                 flipped_bmp.EndInit();
