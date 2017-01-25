@@ -2,7 +2,7 @@
 A posture detection app that I'm working on. Uses Microsoft Azure's FaceAPI and EmguCV (.NET wrapper for OpenCV).
 
 ## Motivation
-I have had some pretty bad neck and shoulder pain in the past from bad posture (especially while playing music). I spend enough time in front of a computer that how I am sitting has a serious effect on my pain. So, I built this program to help remind myself and others to sit straight while in front of a computer by tracking their face through a webcam and noting changes to a calibration photograph. I would like to thank Sina Rezaeizadeh, Shoaib Shaikh, and Felipe Santos for helping come up with the inspiration for this app at MSFTHacks at the the University of Toronto.
+I have had some pretty bad neck and shoulder pain in the past from bad posture (especially while playing music). I spend enough time in front of a computer that how I am sitting has a serious effect on my pain.  I built this program to remind myself to sit straight while in front of a computer by tracking my face through a webcam and noting changes to a calibration photograph. I would like to thank Sina Rezaeizadeh, Shoaib Shaikh, and Felipe Santos for helping come up with the inspiration for this app at MSFTHacks at the  University of Toronto.
 
 ## Examples
 Here is the calibration photograph. You can see my face being boxed and the general layout of the app.
