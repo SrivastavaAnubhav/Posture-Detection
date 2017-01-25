@@ -27,6 +27,12 @@ I'm too far to the left here (face is to the left of the target red box).
 
 ![Photo 4](Screenshot4.PNG)
 
+---
+
+You can work on other things and Postura will become small (but stay on top).
+
+![Photo 5](Screenshot5.PNG)
+
 ## Downloading
 Please download from my [Waterloo website](https://www.student.cs.uwaterloo.ca/~a23sriva/). I tried using ClickOnce publishing but something broke and to be honest I don't know enough to fix it yet.
 
