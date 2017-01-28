@@ -44,10 +44,12 @@ namespace PosturaCSharp
             StrokeThickness = 3,
             Visibility = Visibility.Hidden
         };
+        private static Thread beepThread = new Thread(Beep);
         private double imageHeight, imageWidth, topMult = 0.5, leftMult = 0.5, heightMult = 0.5, rollLimit = 50, yawLimit = 50, normalWidth = 700, normalHeight = 500;
         private const double minimizedHeight = 200;
-        private int consecutiveWrongLimit = 1, consecutiveWrong = 0;
+        private static int consecutiveWrongLimit = 1, consecutiveWrong = 0;
         private bool flip = true, isSmall = false, useFaceAPI = false;
+        //private static bool badPosture = false;
         private string azureSubKey = "";
         private FilterInfoCollection videoDevicesList;
         private VideoCaptureDevice camera;
@@ -59,6 +61,8 @@ namespace PosturaCSharp
 
         public MainWindow()
         {
+            beepThread.IsBackground = true;
+            beepThread.Start();
             InitializeComponent();
             LoadAndParseSettings();
             MainForm.Height = normalHeight;
@@ -397,6 +401,18 @@ namespace PosturaCSharp
 
         }
 
+        private static void Beep()
+        {
+            while (true) 
+            {
+                if (consecutiveWrong > consecutiveWrongLimit)
+                {
+                    SystemSounds.Beep.Play();
+                    Thread.Sleep(2000);
+                }
+            }
+        }
+
         private void CheckEmguCV()
         {
             // TODO: Add cancellation token
@@ -409,16 +425,19 @@ namespace PosturaCSharp
                     Face[] faces = GetFacesEmguCV();
 
                     // TODO: Consecutive wrong should be based on time
-                    if (faces.Length < 1 || IsPostureBad(faces[0]))
+                    if (faces.Length < 1)
+                    {
+                        lblNotifier.Dispatcher.Invoke(() => lblNotifier.Content = "No faces detected");
+                    }
+                    else if (IsPostureBad(faces[0]))
                     {
                         consecutiveWrong++;
                     }
-                    else consecutiveWrong = 0;
-
-                    if (consecutiveWrong >= consecutiveWrongLimit)
+                    else
                     {
-                        SystemSounds.Beep.Play();
+                        consecutiveWrong = 0;
                     }
+
 
                     sw.Stop();
                     lblLag.Dispatcher.Invoke(() => lblLag.Content = sw.ElapsedMilliseconds + "ms");
