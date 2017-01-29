@@ -37,13 +37,22 @@ namespace PosturaCSharp
             Settings
         };
         // Can't use System.Drawing.Rectangle because it has no way to change visibility (can't delete it for recalibrate)
+        private System.Windows.Shapes.Rectangle rctGreen = new System.Windows.Shapes.Rectangle()
+        {
+            Fill = System.Windows.Media.Brushes.Transparent,
+            Stroke = System.Windows.Media.Brushes.LimeGreen,
+            StrokeThickness = 3,
+            Visibility = Visibility.Hidden
+        };
         private System.Windows.Shapes.Rectangle rctRed = new System.Windows.Shapes.Rectangle()
         {
             Fill = System.Windows.Media.Brushes.Transparent,
             Stroke = System.Windows.Media.Brushes.Red,
-            StrokeThickness = 3,
-            Visibility = Visibility.Hidden
+            StrokeThickness = 2,
+            Visibility = Visibility.Visible
         };
+
+
         private static Thread beepThread = new Thread(Beep);
         private double imageHeight, imageWidth, topMult = 0.5, leftMult = 0.5, heightMult = 0.5, rollLimit = 50, yawLimit = 50, normalWidth = 700, normalHeight = 500;
         private const double minimizedHeight = 200;
@@ -54,7 +63,7 @@ namespace PosturaCSharp
         private FilterInfoCollection videoDevicesList;
         private VideoCaptureDevice camera;
         private Stopwatch sw = new Stopwatch();
-        private Face goodFace;
+        private Face goodFace, currFace;
         private Thread runningThread;
         private AppState appState = AppState.Started;
         CascadeClassifier cascadeClassifier = new CascadeClassifier(AppDomain.CurrentDomain.BaseDirectory + "\\Resources\\haarcascade_frontalface_default.xml");
@@ -67,6 +76,7 @@ namespace PosturaCSharp
             LoadAndParseSettings();
             MainForm.Height = normalHeight;
             MainForm.Width = normalWidth;
+            rctHolder.Children.Add(rctGreen);
             rctHolder.Children.Add(rctRed);
         }
 
@@ -207,6 +217,7 @@ namespace PosturaCSharp
             btnCalibrate.IsEnabled = false;
             btnContinue.IsEnabled = false;
             btnSettings.IsEnabled = false;
+            rctGreen.Visibility = Visibility.Hidden;
             rctRed.Visibility = Visibility.Hidden;
             appState = AppState.Calibrating;
 
@@ -218,8 +229,7 @@ namespace PosturaCSharp
             await Countdown();
             camera.SignalToStop();
 
-            // TODO: Is this the best way to do this?
-            // Camera flash
+            // Makes the camera look like it flashed
             DoubleAnimation fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(500));
             DoubleAnimation fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(1000));
             fadeIn.Completed += new EventHandler(fadeIn_Completed);
@@ -257,7 +267,7 @@ namespace PosturaCSharp
                 if (faces.Length > 0)
                 {
                     goodFace = faces[0];
-                    BoxFace(faces[0]);
+                    BoxFace(faces[0], rctGreen);
                     if (useFaceAPI)
                     {
                         lblNotifier.Content = string.Format("Pitch: {0}, Roll: {1}, Yaw: {2}", 
@@ -308,40 +318,44 @@ namespace PosturaCSharp
         /// Draws a box around the given face
         /// </summary>
         /// <param name="face">Face to be boxed</param>
-        private void BoxFace(Face face)
+        /// <param name="rct">Rectangle with which to box the face</param>
+        private void BoxFace(Face face, System.Windows.Shapes.Rectangle rct)
         {
-            // Note to self: setting rctRed's properties will need dispatcher if done through EmguCV in the future
-
             double topPercent = face.FaceRectangle.Top / imageHeight;
             double leftPercent = face.FaceRectangle.Left / imageWidth;
             double bigHeight = 0;
+            double trimHeight = 0, trimWidth = 0;
             double bigWidth = MainGrid.ColumnDefinitions[0].ActualWidth;
 
-            // Get bigHeight as the sum of all the rows the grid occupies
-            for (int i = Grid.GetRow(videoBox); i < Grid.GetRow(videoBox) + Grid.GetRowSpan(videoBox); i++)
+            videoBox.Dispatcher.Invoke(() => {
+                // Get bigHeight as the sum of all the rows the grid occupies
+                for (int i = Grid.GetRow(videoBox); i < Grid.GetRow(videoBox) + Grid.GetRowSpan(videoBox); i++)
+                {
+                    bigHeight += MainGrid.RowDefinitions[i].ActualHeight;
+                }
+
+                // At most one of these will be non-zero (can only be limited by either height or width, or neither, not both)
+                // May decide to put an if statement to reflect this later
+                // Dividing by 2 because the space is on both sides
+
+                trimHeight = (bigHeight - videoBox.ActualHeight) / 2;
+                trimWidth = (bigWidth - videoBox.ActualWidth) / 2;
+            });
+ 
+            rct.Dispatcher.Invoke(() =>
             {
-                bigHeight += MainGrid.RowDefinitions[i].ActualHeight;
-            }
-
-            // At most one of these will be non-zero (can only be limited by either height or width, or neither, not both)
-            // May decide to put an if statement to reflect this later
-            // Dividing by 2 because the space is on both sides
-            double trimHeight = (bigHeight - videoBox.ActualHeight) / 2;
-            double trimWidth = (bigWidth - videoBox.ActualWidth) / 2;
-
-            rctRed.Height = videoBox.ActualHeight * face.FaceRectangle.Height / imageHeight;
-            rctRed.Width = videoBox.ActualWidth * face.FaceRectangle.Width / imageWidth;
-            rctRed.Visibility = Visibility.Visible;
-            Canvas.SetTop(rctRed, videoBox.ActualHeight * topPercent + trimHeight);
-            Canvas.SetLeft(rctRed, videoBox.ActualWidth * leftPercent + trimWidth);
+                rct.Height = videoBox.ActualHeight * face.FaceRectangle.Height / imageHeight;
+                rct.Width = videoBox.ActualWidth * face.FaceRectangle.Width / imageWidth;
+                rct.Visibility = Visibility.Visible;
+                Canvas.SetTop(rct, videoBox.ActualHeight * topPercent + trimHeight);
+                Canvas.SetLeft(rct, videoBox.ActualWidth * leftPercent + trimWidth);
+            });
         }
 
         /// <summary>
         /// Makes the form small when deactivated but keeps it on top so that posture can
         /// be monitored.
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
         private void MainForm_Deactivated(object sender, EventArgs e)
         {
             if (appState != AppState.Settings && !isSmall)
@@ -367,7 +381,11 @@ namespace PosturaCSharp
         /// </summary>
         private void MainForm_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if ((appState == AppState.Running || appState == AppState.WaitingForContinue) && goodFace != null) BoxFace(goodFace);
+            if ((appState == AppState.Running || appState == AppState.WaitingForContinue) && goodFace != null)
+            {
+                BoxFace(goodFace, rctGreen);
+                BoxFace(currFace, rctRed);
+            }
         }
 
         private async Task Countdown()
@@ -375,7 +393,6 @@ namespace PosturaCSharp
             for (int i = 3; i > 0; i--)
             {
                 tbCountdown.Dispatcher.Invoke(delegate { tbCountdown.Text = i.ToString(); });
-                //SystemSounds.Beep.Play();
                 await Task.Delay(1000);
             }
             tbCountdown.Dispatcher.Invoke(delegate { tbCountdown.Text = ""; });
@@ -398,9 +415,11 @@ namespace PosturaCSharp
                 runningThread.Name = "EmguChecking";
                 runningThread.Start();
             }
-
         }
 
+        /// <summary>
+        /// Beeps every 2 seconds if the posture is bad
+        /// </summary>
         private static void Beep()
         {
             while (true) 
@@ -427,22 +446,28 @@ namespace PosturaCSharp
                     // TODO: Consecutive wrong should be based on time
                     if (faces.Length < 1)
                     {
-                        lblNotifier.Dispatcher.Invoke(() => lblNotifier.Content = "No faces detected");
-                    }
-                    else if (IsPostureBad(faces[0]))
-                    {
-                        consecutiveWrong++;
+                        lblNotifier.Dispatcher.Invoke(() => lblNotifier.Content = "No face detected");
+                        rctRed.Dispatcher.Invoke(() => rctRed.Visibility = Visibility.Hidden);
                     }
                     else
                     {
-                        consecutiveWrong = 0;
+                        currFace = faces[0];
+                        lblNotifier.Dispatcher.Invoke(() => lblNotifier.Content = "Boxed it!");
+                        BoxFace(faces[0], rctRed);
+
+                        if (IsPostureBad(faces[0]))
+                        {
+                            consecutiveWrong++;
+                        }
+                        else
+                            consecutiveWrong = 0;
                     }
 
 
                     sw.Stop();
                     lblLag.Dispatcher.Invoke(() => lblLag.Content = sw.ElapsedMilliseconds + "ms");
                 }
-                else Thread.Sleep(100);
+                //else Thread.Sleep(100);
             }
         }
 
@@ -458,15 +483,18 @@ namespace PosturaCSharp
 
                     faces = await GetFacesFaceAPIAsync();
 
-                    if (faces.Length < 1 || IsPostureBad(faces[0]))
+                    if (faces.Length < 1)
+                        lblNotifier.Dispatcher.Invoke(() => lblNotifier.Content = "No faces detected");
+                    else
                     {
-                        consecutiveWrong++;
-                    }
-                    else consecutiveWrong = 0;
-
-                    if (consecutiveWrong >= consecutiveWrongLimit)
-                    {
-                        SystemSounds.Beep.Play();
+                        currFace = faces[0];
+                        if (IsPostureBad(faces[0]))
+                        {
+                            consecutiveWrong++;
+                            BoxFace(faces[0], rctRed);
+                        }
+                        else
+                            consecutiveWrong = 0;
                     }
 
                     sw.Stop();
